@@ -13,6 +13,9 @@ const CLAY = "#B97452";
 const MOSS = "#6E7C4F";
 const TAUPE = "#B7A78C";
 
+/* API base — configurable per environment instead of hardcoded */
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 const CATEGORIES = [
   {
     id: "skincare", name: "Skincare & Facials", tag: "Renew", icon: Sparkles, color: MOSS,
@@ -108,7 +111,6 @@ function MenuRow({ name, time, price }) {
 
 export default function App() {
   const [scrolled, setScrolled] = useState(false);
-  const [openPanel, setOpenPanel] = useState(null);
   const [cart, setCart] = useState([]);
   const [showCartDropdown, setShowCartDropdown] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -121,6 +123,8 @@ export default function App() {
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
   const [clientInfo, setClientInfo] = useState({ name: "", email: "", phone: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -150,20 +154,23 @@ export default function App() {
   const cartCount = cart.reduce((acc, curr) => acc + curr.qty, 0);
   const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
 
-  const startBooking = (treatmentSet = null) => {
-    if (treatmentSet && treatmentSet.length > 0) {
-      setSelectedTreatment(treatmentSet[0]);
+  const startBooking = (treatment = null) => {
+    if (treatment) {
+      setSelectedTreatment(treatment);
       setBookingStep(2);
     } else {
       setSelectedTreatment(null);
       setBookingStep(1);
     }
+    setSubmitError("");
     setIsBookingOpen(true);
     setMobileMenuOpen(false);
   };
 
   const handleConfirmReservation = () => {
-    fetch("http://127.0.0", {
+    setIsSubmitting(true);
+    setSubmitError("");
+    fetch(`${API_BASE}/api/bookings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -176,29 +183,34 @@ export default function App() {
         client_phone: clientInfo.phone
       })
     })
-    .then(response => {
-      if (!response.ok) return response.json().then(err => { throw new Error(err.detail) });
-      return response.json();
-    })
-    .then(data => {
-      alert(`Ritual Successfully Booked! Booking reference ID: ${data.booking_id}`);
-      setIsBookingOpen(false);
-      setBookingStep(1);
-      // Reset states
-      setBookingDate("");
-      setBookingTime("");
-      setClientInfo({ name: "", email: "", phone: "" });
-    })
-    .catch(error => {
-      alert(`Could not process appointment: ${error.message}`);
-    });
+      .then(response => {
+        if (!response.ok) return response.json().then(err => { throw new Error(err.detail || "Booking failed"); });
+        return response.json();
+      })
+      .then(data => {
+        alert(`Ritual Successfully Booked! Booking reference ID: ${data.booking_id}`);
+        setIsBookingOpen(false);
+        setBookingStep(1);
+        setSelectedTreatment(null);
+        setSelectedStylist("No preference");
+        setBookingDate("");
+        setBookingTime("");
+        setClientInfo({ name: "", email: "", phone: "" });
+      })
+      .catch(error => {
+        setSubmitError(error.message);
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   return (
     <div className="min-h-screen relative antialiased selection:bg-amber-100" style={{ backgroundColor: SAND, color: INK }}>
-      
+
       {/* HEADER NAVBAR */}
-      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300" style={{ background: scrolled ? SAND : "transparent", borderBottom: scrolled ? `1px solid ${TAUPE}44` : "1px solid transparent" }}>
+      <header
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        style={{ background: scrolled ? SAND : "transparent", borderBottom: scrolled ? `1px solid ${TAUPE}44` : "1px solid transparent" }}
+      >
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <a href="#top" className="flex items-baseline gap-1.5">
             <span style={{ fontFamily: "serif", fontStyle: "italic", color: INK }} className="text-2xl font-bold">Terra</span>
@@ -213,121 +225,336 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             <div className="relative">
-              <button onClick={() => setShowCartDropdown(!showCartDropdown)} className="p-2 relative rounded-full hover:bg-stone-200/50">
+              <button
+                onClick={() => setShowCartDropdown(!showCartDropdown)}
+                className="p-2 relative rounded-full hover:bg-stone-200/50"
+                aria-label="Open shopping basket"
+              >
                 <ShoppingBag size={20} />
-                {cartCount > 0 && <span className="absolute -top-0.5 -right-0.5 text-[9px] w-4 h-4 rounded-full flex items-center justify-center text-white font-bold" style={{ background: CLAY }}>{cartCount}</span>}
+                {cartCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 text-[9px] w-4 h-4 rounded-full flex items-center justify-center text-white font-bold"
+                    style={{ background: CLAY }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
               </button>
 
               {showCartDropdown && (
-                <div className="absolute right-0 mt-3 w-80 p-4 rounded-xl shadow-2xl border z-50" style={{ backgroundColor: LINEN }}>
-<div className="flex justify-between items-center pb-2 border-b mb-2" style={{ borderColor: TAUPE }}>
-Shopping Basket
-<button onClick={() => setShowCartDropdown(false)}>
+                <div className="absolute right-0 mt-3 w-80 p-4 rounded-xl shadow-2xl border animate-scaleIn z-50" style={{ backgroundColor: LINEN, borderColor: `${TAUPE}66` }}>
+                  <div className="flex justify-between items-center pb-2 border-b mb-2" style={{ borderColor: TAUPE }}>
+                    <span className="font-semibold text-sm">Shopping Basket</span>
+                    <button onClick={() => setShowCartDropdown(false)} aria-label="Close basket">
+                      <X size={16} />
+                    </button>
+                  </div>
 
-{cart.length === 0 ? Your cart is empty. : (
-{cart.map((item) => (
+                  {cart.length === 0 ? (
+                    <p className="text-xs py-4 text-center" style={{ color: TAUPE }}>Your cart is empty.</p>
+                  ) : (
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                      {cart.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate">{item.name}</p>
+                            <p className="text-[11px]" style={{ color: TAUPE }}>{naira(item.price)}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button onClick={() => updateCartQty(item.id, -1)} className="px-1.5 py-0.5 rounded bg-stone-200" aria-label={`Remove one ${item.name}`}>
+                              <Minus size={12} />
+                            </button>
+                            <span className="text-xs w-4 text-center">{item.qty}</span>
+                            <button onClick={() => updateCartQty(item.id, 1)} className="px-1.5 py-0.5 rounded bg-stone-200" aria-label={`Add one ${item.name}`}>
+                              <Plus size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
+                  {cart.length > 0 && (
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: TAUPE }}>
+                      <div className="flex justify-between text-xs font-semibold mb-2">
+                        <span>Total</span>
+                        <span>{naira(cartTotal)}</span>
+                      </div>
+                      <button
+                        onClick={() => { alert("Order simulation submitted!"); setCart([]); setShowCartDropdown(false); }}
+                        className="w-full py-2 text-xs font-bold text-white rounded-lg"
+                        style={{ backgroundColor: INK }}
+                      >
+                        Checkout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-{item.name}
-<p style={{ color: TAUPE }}>{naira(item.price)}
+            <button
+              onClick={() => startBooking()}
+              className="hidden md:flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-full text-white"
+              style={{ background: INK }}
+            >
+              Book Now
+            </button>
 
+            <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
+        </div>
 
-<button onClick={() => updateCartQty(item.id, -1)} className="px-1.5 py-0.5 rounded bg-stone-200">-
-{item.qty}
-<button onClick={() => updateCartQty(item.id, 1)} className="px-1.5 py-0.5 rounded bg-stone-200">+
+        {mobileMenuOpen && (
+          <div className="md:hidden flex flex-col gap-4 px-6 pb-6 text-sm font-medium animate-fadeIn" style={{ backgroundColor: SAND }}>
+            <a href="#services" onClick={() => setMobileMenuOpen(false)}>Services</a>
+            <a href="#apothecary" onClick={() => setMobileMenuOpen(false)}>Apothecary</a>
+            <a href="#gallery" onClick={() => setMobileMenuOpen(false)}>Gallery</a>
+            <button onClick={() => startBooking()} className="py-2.5 rounded-full text-white text-center" style={{ background: INK }}>
+              Book Now
+            </button>
+          </div>
+        )}
+      </header>
 
+      {/* HERO SECTION */}
+      <section id="top" className="pt-40 pb-24 px-6 text-center">
+        <p className="text-xs tracking-[0.3em] uppercase mb-4" style={{ color: CLAY }}>Port Harcourt · Wellness Salon</p>
+        <h1 className="text-4xl md:text-6xl font-serif italic max-w-2xl mx-auto leading-tight">
+          Slow down. Be tended to.
+        </h1>
+        <p className="max-w-md mx-auto mt-5 text-sm" style={{ color: `${INK}99` }}>
+          Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
+        </p>
+        <button
+          onClick={() => startBooking()}
+          className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-medium"
+          style={{ backgroundColor: INK }}
+        >
+          Reserve a ritual <ArrowRight size={16} />
+        </button>
+      </section>
 
-))}
+      {/* CORE MENU SECTION */}
+      <section id="services" className="max-w-6xl mx-auto px-6 py-16">
+        <h2 className="text-2xl font-serif italic mb-10 text-center">Services</h2>
+        <div className="grid md:grid-cols-2 gap-10">
+          {CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            return (
+              <div key={cat.id} className="p-6 rounded-2xl" style={{ backgroundColor: LINEN }}>
+                <div className="flex items-center gap-3 mb-1">
+                  <Icon size={18} style={{ color: cat.color }} />
+                  <p className="text-xs font-bold tracking-wide uppercase" style={{ color: cat.color }}>{cat.tag}</p>
+                </div>
+                <h3 className="text-lg font-semibold mb-1">{cat.name}</h3>
+                <p className="text-xs mb-3" style={{ color: `${INK}88` }}>{cat.blurb}</p>
+                <div className="divide-y" style={{ borderColor: `${TAUPE}44` }}>
+                  {cat.treatments.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => startBooking(t)}
+                      className="w-full text-left"
+                    >
+                      <MenuRow name={t.name} time={t.time} price={t.price} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
+      {/* APOTHECARY PRODUCT SECTION */}
+      <section id="apothecary" className="max-w-6xl mx-auto px-6 py-16">
+        <h2 className="text-2xl font-serif italic mb-10 text-center">Apothecary</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+          {PRODUCTS.map((p) => (
+            <div key={p.id} className="p-5 rounded-2xl flex flex-col" style={{ backgroundColor: LINEN }}>
+              <div className="w-full aspect-square rounded-xl mb-3" style={{ backgroundColor: `${p.color}22` }} />
+              <p className="text-[11px] uppercase tracking-wide mb-1" style={{ color: TAUPE }}>{p.cat}</p>
+              <p className="text-sm font-medium mb-2 flex-1">{p.name}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-mono font-semibold">{naira(p.price)}</span>
+                <button
+                  onClick={() => addToCart(p)}
+                  className="p-1.5 rounded-full text-white"
+                  style={{ backgroundColor: INK }}
+                  aria-label={`Add ${p.name} to cart`}
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-Total:{naira(cartTotal)}
+      {/* GALLERY PRESENTATION SECTION */}
+      <section id="gallery" className="max-w-6xl mx-auto px-6 py-16">
+        <h2 className="text-2xl font-serif italic mb-10 text-center">Gallery</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {GALLERY.map((g) => {
+            const Icon = g.icon;
+            return (
+              <div key={g.id} className="aspect-square rounded-xl flex flex-col items-center justify-center gap-2 text-center p-3" style={{ backgroundColor: `${g.color}18` }}>
+                <Icon size={22} style={{ color: g.color }} />
+                <p className="text-xs font-medium">{g.title}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
-<button onClick={() => { alert("Order simulation submitted!"); setCart([]); setShowCartDropdown(false); }} className="w-full py-2 text-xs font-bold text-white rounded-lg" style={{ backgroundColor: INK }}>Checkout
-)}
+      {/* INTERACTIVE COMPREHENSIVE SCHEDULER WIZARD */}
+      {isBookingOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border animate-scaleIn" style={{ backgroundColor: LINEN }}>
+            <div className="p-4 text-white flex justify-between items-center" style={{ backgroundColor: INK }}>
+              <span className="font-medium text-sm">Reserve Salon Ritual</span>
+              <button onClick={() => setIsBookingOpen(false)} aria-label="Close booking dialog">
+                <X size={18} />
+              </button>
+            </div>
 
-)}
-<button onClick={() => startBooking()} className="hidden md:flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-full text-white" style={{ background: INK }}>
-Book Now
+            <div className="p-5 max-h-[70vh] overflow-y-auto">
+              {bookingStep === 1 && (
+                <div>
+                  <p className="text-xs font-semibold mb-3" style={{ color: TAUPE }}>Step 1: Choose a Specific Treatment</p>
+                  <div className="space-y-4">
+                    {CATEGORIES.map((cat) => (
+                      <div key={cat.id}>
+                        <p className="text-xs font-bold mt-2" style={{ color: cat.color }}>{cat.name}</p>
+                        <div className="space-y-1.5 mt-1.5">
+                          {cat.treatments.map((t) => (
+                            <button
+                              key={t.id}
+                              onClick={() => { setSelectedTreatment(t); setBookingStep(2); }}
+                              className="w-full p-2.5 rounded-lg border text-left text-xs flex justify-between items-center bg-white hover:border-stone-900"
+                            >
+                              <span>{t.name} · {t.time}</span>
+                              <span className="font-mono">{naira(t.price)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-<button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? : }
+              {bookingStep === 2 && (
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold" style={{ color: TAUPE }}>Step 2: Time & Stylist Configuration</p>
 
+                  <div>
+                    <label className="text-xs font-medium block mb-1">Practitioner preference</label>
+                    <select
+                      value={selectedStylist}
+                      onChange={(e) => setSelectedStylist(e.target.value)}
+                      className="w-full p-2 border rounded-lg text-xs bg-white"
+                    >
+                      {STYLISTS.map((st) => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
 
-{/* HERO SECTION */}
-{/* CORE MENU SECTION */}
-{/* APOTHECARY PRODUCT SECTION */}
-{/* GALLERY PRESENTATION SECTION */}
-{/* INTERACTIVE COMPREHENSIVE SCHEDULER WIZARD */}
-{isBookingOpen && (
+                  <div>
+                    <label className="text-xs font-medium block mb-1">Calendar Date</label>
+                    <input
+                      type="date"
+                      value={bookingDate}
+                      onChange={(e) => setBookingDate(e.target.value)}
+                      className="w-full p-2 border rounded-lg text-xs bg-white"
+                    />
+                  </div>
 
-<div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border" style={{ backgroundColor: LINEN }}>
-<div className="p-4 text-white flex justify-between items-center" style={{ backgroundColor: INK }}>
-Reserve Salon Ritual
-<button onClick={() => setIsBookingOpen(false)}>
-{bookingStep === 1 && (
+                  <div>
+                    <label className="text-xs font-medium block mb-1">Available Hours</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {TIMES.map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => setBookingTime(t)}
+                          className="py-1.5 border text-xs font-mono rounded"
+                          style={{ backgroundColor: bookingTime === t ? CLAY : "white", color: bookingTime === t ? "white" : INK }}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-Step 1: Choose a Specific Treatment
-{CATEGORIES.map(cat => (
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => setBookingStep(1)} className="flex-1 py-2 text-xs border rounded-lg">Back</button>
+                    <button
+                      disabled={!bookingDate || !bookingTime}
+                      onClick={() => setBookingStep(3)}
+                      className="flex-1 py-2 text-xs text-white rounded-lg disabled:opacity-40"
+                      style={{ backgroundColor: INK }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
 
-<p className="text-xs font-bold mt-2" style={{ color: cat.color }}>{cat.name}
-{cat.treatments.map(t => (
-<button key={t.id} onClick={() => { setSelectedTreatment(t); setBookingStep(2); }} className="w-full p-2.5 rounded-lg border text-left text-xs flex justify-between items-center bg-white hover:border-stone-900">
-{t.name}{t.time}
-{naira(t.price)}
+              {bookingStep === 3 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold" style={{ color: TAUPE }}>Step 3: Contact & Submit</p>
 
-))}
+                  <div className="p-3 text-xs rounded-xl" style={{ backgroundColor: SAND }}>
+                    <p className="font-medium">{selectedTreatment?.name}</p>
+                    <p style={{ color: `${INK}88` }}>{bookingDate} @ {bookingTime} ({selectedStylist})</p>
+                  </div>
 
-))}
+                  <input
+                    type="text" placeholder="Full Name" value={clientInfo.name}
+                    onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
+                  <input
+                    type="email" placeholder="Email Address" value={clientInfo.email}
+                    onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
+                  <input
+                    type="tel" placeholder="Phone Number" value={clientInfo.phone}
+                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
 
-)}
-{bookingStep === 2 && (
+                  {submitError && (
+                    <p className="text-xs text-red-600">{submitError}</p>
+                  )}
 
-Step 2: Time & Stylist Configuration
-Practitioner preference
-<select value={selectedStylist} onChange={(e) => setSelectedStylist(e.target.value)} className="w-full p-2 border rounded-lg text-xs bg-white">
-{STYLISTS.map(st => {st})}
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => setBookingStep(2)} className="flex-1 py-2 text-xs border rounded-lg">Back</button>
+                    <button
+                      disabled={!clientInfo.name || !clientInfo.email || !clientInfo.phone || isSubmitting}
+                      onClick={handleConfirmReservation}
+                      className="flex-1 py-2 text-xs text-white rounded-lg disabled:opacity-40"
+                      style={{ backgroundColor: CLAY }}
+                    >
+                      {isSubmitting ? "Submitting…" : "Submit Booking"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-
-Calendar Date
-<input type="date" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} className="w-full p-2 border rounded-lg text-xs bg-white" />
-
-Available Hours
-{TIMES.map(t => (
-<button key={t} onClick={() => setBookingTime(t)} className="py-1.5 border text-xs font-mono rounded" style={{ backgroundColor: bookingTime === t ? CLAY : "white", color: bookingTime === t ? "white" : INK }}>{t}
-))}
-
-
-
-<button onClick={() => setBookingStep(1)} className="flex-1 py-2 text-xs border rounded-lg">Back
-<button disabled={!bookingDate || !bookingTime} onClick={() => setBookingStep(3)} className="flex-1 py-2 text-xs text-white rounded-lg disabled:opacity-40" style={{ backgroundColor: INK }}>Next
-
-
-)}
-{bookingStep === 3 && (
-
-Step 3: Contact & Submit
-<div className="p-3 text-xs rounded-xl" style={{ backgroundColor: SAND }}>
-{selectedTreatment?.name}
-{bookingDate} @ {bookingTime} ({selectedStylist})
-
-
-<input type="text" placeholder="Full Name" value={clientInfo.name} onChange={(e) => setClientInfo({...clientInfo, name: e.target.value})} className="w-full p-2 text-xs border rounded-lg bg-white" />
-<input type="email" placeholder="Email Address" value={clientInfo.email} onChange={(e) => setClientInfo({...clientInfo, email: e.target.value})} className="w-full p-2 text-xs border rounded-lg bg-white" />
-<input type="tel" placeholder="Phone Number" value={clientInfo.phone} onChange={(e) => setClientInfo({...clientInfo, phone: e.target.value})} className="w-full p-2 text-xs border rounded-lg bg-white" />
-
-
-<button onClick={() => setBookingStep(2)} className="flex-1 py-2 text-xs border rounded-lg">Back
-<button disabled={!clientInfo.name || !clientInfo.email || !clientInfo.phone} onClick={handleConfirmReservation} className="flex-1 py-2 text-xs text-white rounded-lg disabled:opacity-40" style={{ backgroundColor: CLAY }}>Submit Booking
-
-
-)}
-
-
-)}
-{/* FOOTER */}
-<footer className="py-12 text-center text-xs text-stone-400 border-t mt-20" style={{ backgroundColor: INK }}>
-Terra Studio Wellness
-© {new Date().getFullYear()} Terra Studio Ltd. All rights reserved.
-
-
-);
+      {/* FOOTER */}
+      <footer className="py-12 text-center text-xs text-stone-400 border-t mt-20" style={{ backgroundColor: INK }}>
+        <p>Terra Studio Wellness</p>
+        <p>© {new Date().getFullYear()} Terra Studio Ltd. All rights reserved.</p>
+      </footer>
+    </div>
+  );
 }
