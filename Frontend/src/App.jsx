@@ -212,15 +212,19 @@ export default function App() {
         style={{ background: scrolled ? SAND : "transparent", borderBottom: scrolled ? `1px solid ${TAUPE}44` : "1px solid transparent" }}
       >
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <a href="#top" className="flex items-baseline gap-1.5">
-            <span style={{ fontFamily: "serif", fontStyle: "italic", color: INK }} className="text-2xl font-bold">Terra</span>
+          <a
+            href="#top"
+            className="flex items-baseline gap-1.5 px-4 py-1.5 rounded-full"
+            style={{ backgroundColor: scrolled ? "transparent" : "rgba(0,0,0,0.35)" }}
+          >
+            <span style={{ fontFamily: "serif", fontStyle: "italic", color: scrolled ? INK : "white" }} className="text-2xl font-bold">Terra</span>
             <span style={{ color: CLAY }} className="text-[10px] tracking-[0.25em] uppercase font-bold">Studio</span>
           </a>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <a href="#services" className="hover:opacity-80">Services</a>
-            <a href="#apothecary" className="hover:opacity-80">Apothecary</a>
-            <a href="#gallery" className="hover:opacity-80">Gallery</a>
+            <a href="#services" className="hover:opacity-80" style={{ color: "#DC2626" }}>Services</a>
+            <a href="#apothecary" className="hover:opacity-80" style={{ color: "#DC2626" }}>Apothecary</a>
+            <a href="#gallery" className="hover:opacity-80" style={{ color: "#DC2626" }}>Gallery</a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -320,21 +324,38 @@ export default function App() {
       </header>
 
       {/* HERO SECTION */}
-      <section id="top" className="pt-40 pb-24 px-6 text-center">
-        <p className="text-xs tracking-[0.3em] uppercase mb-4" style={{ color: CLAY }}>Port Harcourt · Wellness Salon</p>
-        <h1 className="text-4xl md:text-6xl font-serif italic max-w-2xl mx-auto leading-tight">
-          Slow down. Be tended to.
-        </h1>
-        <p className="max-w-md mx-auto mt-5 text-sm" style={{ color: `${INK}99` }}>
-          Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
-        </p>
-        <button
-          onClick={() => startBooking()}
-          className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-medium"
-          style={{ backgroundColor: INK }}
-        >
-          Reserve a ritual <ArrowRight size={16} />
-        </button>
+      <section
+        id="top"
+        className="relative min-h-[85vh] flex items-center justify-center pt-32 pb-24 px-6 text-center bg-cover"
+        style={{
+          backgroundImage: `url('${import.meta.env.BASE_URL}hero-background.jpg')`,
+          backgroundPosition: "center 20%",
+        }}
+      >
+        {/* Gradient overlay: subtle at top, darker toward bottom for text contrast */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.75) 100%)",
+          }}
+        />
+
+        <div className="relative z-10">
+          <p className="text-xs tracking-[0.3em] uppercase mb-4 text-white/90">Online Wellness Salon</p>
+          <h1 className="text-4xl md:text-6xl font-serif italic max-w-2xl mx-auto leading-tight text-white">
+            Bringing Beauty to your Doorstep
+          </h1>
+          <p className="max-w-md mx-auto mt-5 text-sm text-white/85">
+            Facials, spa services, hair, nails and aesthetic treatments — booked in a couple of taps.
+          </p>
+          <button
+            onClick={() => startBooking()}
+            className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-medium shadow-lg"
+            style={{ backgroundColor: CLAY }}
+          >
+            Reserve a salon service <ArrowRight size={16} />
+          </button>
+        </div>
       </section>
 
       {/* CORE MENU SECTION */}
@@ -414,7 +435,7 @@ export default function App() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
           <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border animate-scaleIn" style={{ backgroundColor: LINEN }}>
             <div className="p-4 text-white flex justify-between items-center" style={{ backgroundColor: INK }}>
-              <span className="font-medium text-sm">Reserve Salon Ritual</span>
+              <span className="font-medium text-sm">Reserve Salon Services</span>
               <button onClick={() => setIsBookingOpen(false)} aria-label="Close booking dialog">
                 <X size={18} />
               </button>
