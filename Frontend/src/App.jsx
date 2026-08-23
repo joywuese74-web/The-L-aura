@@ -221,11 +221,7 @@ export default function App() {
             <span style={{ color: CLAY }} className="text-[10px] tracking-[0.25em] uppercase font-bold">Studio</span>
           </a>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <a href="#services" className="hover:opacity-80" style={{ color: "#DC2626" }}>Services</a>
-            <a href="#apothecary" className="hover:opacity-80" style={{ color: "#DC2626" }}>Apothecary</a>
-            <a href="#gallery" className="hover:opacity-80" style={{ color: "#DC2626" }}>Gallery</a>
-          </nav>
+          
 
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -326,7 +322,7 @@ export default function App() {
       {/* HERO SECTION */}
       <section
         id="top"
-        className="relative min-h-[85vh] flex items-center justify-center pt-32 pb-24 px-6 text-center bg-cover"
+        className="relative min-h-screen flex items-center justify-center pt-32 pb-24 px-6 text-center bg-cover"
         style={{
           backgroundImage: `url('${import.meta.env.BASE_URL}hero-background.jpg')`,
           backgroundPosition: "center 20%",
@@ -341,92 +337,20 @@ export default function App() {
         />
 
         <div className="relative z-10">
-          <p className="text-xs tracking-[0.3em] uppercase mb-4 text-white/90">Online Wellness Salon</p>
+          <p className="text-xs tracking-[0.3em] uppercase mb-4 text-white/90">Port Harcourt · Wellness Salon</p>
           <h1 className="text-4xl md:text-6xl font-serif italic max-w-2xl mx-auto leading-tight text-white">
-            Bringing Beauty to your Doorstep
+            Slow down. Be tended to.
           </h1>
           <p className="max-w-md mx-auto mt-5 text-sm text-white/85">
-            Facials, spa services, hair, nails and aesthetic treatments — booked in a couple of taps.
+            Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
           </p>
           <button
             onClick={() => startBooking()}
             className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-medium shadow-lg"
             style={{ backgroundColor: CLAY }}
           >
-            Reserve a salon service <ArrowRight size={16} />
+            Reserve a ritual <ArrowRight size={16} />
           </button>
-        </div>
-      </section>
-
-      {/* CORE MENU SECTION */}
-      <section id="services" className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-serif italic mb-10 text-center">Services</h2>
-        <div className="grid md:grid-cols-2 gap-10">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            return (
-              <div key={cat.id} className="p-6 rounded-2xl" style={{ backgroundColor: LINEN }}>
-                <div className="flex items-center gap-3 mb-1">
-                  <Icon size={18} style={{ color: cat.color }} />
-                  <p className="text-xs font-bold tracking-wide uppercase" style={{ color: cat.color }}>{cat.tag}</p>
-                </div>
-                <h3 className="text-lg font-semibold mb-1">{cat.name}</h3>
-                <p className="text-xs mb-3" style={{ color: `${INK}88` }}>{cat.blurb}</p>
-                <div className="divide-y" style={{ borderColor: `${TAUPE}44` }}>
-                  {cat.treatments.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => startBooking(t)}
-                      className="w-full text-left"
-                    >
-                      <MenuRow name={t.name} time={t.time} price={t.price} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* APOTHECARY PRODUCT SECTION */}
-      <section id="apothecary" className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-serif italic mb-10 text-center">Apothecary</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-          {PRODUCTS.map((p) => (
-            <div key={p.id} className="p-5 rounded-2xl flex flex-col" style={{ backgroundColor: LINEN }}>
-              <div className="w-full aspect-square rounded-xl mb-3" style={{ backgroundColor: `${p.color}22` }} />
-              <p className="text-[11px] uppercase tracking-wide mb-1" style={{ color: TAUPE }}>{p.cat}</p>
-              <p className="text-sm font-medium mb-2 flex-1">{p.name}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-mono font-semibold">{naira(p.price)}</span>
-                <button
-                  onClick={() => addToCart(p)}
-                  className="p-1.5 rounded-full text-white"
-                  style={{ backgroundColor: INK }}
-                  aria-label={`Add ${p.name} to cart`}
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* GALLERY PRESENTATION SECTION */}
-      <section id="gallery" className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-serif italic mb-10 text-center">Gallery</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {GALLERY.map((g) => {
-            const Icon = g.icon;
-            return (
-              <div key={g.id} className="aspect-square rounded-xl flex flex-col items-center justify-center gap-2 text-center p-3" style={{ backgroundColor: `${g.color}18` }}>
-                <Icon size={22} style={{ color: g.color }} />
-                <p className="text-xs font-medium">{g.title}</p>
-              </div>
-            );
-          })}
         </div>
       </section>
 
@@ -435,7 +359,7 @@ export default function App() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
           <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border animate-scaleIn" style={{ backgroundColor: LINEN }}>
             <div className="p-4 text-white flex justify-between items-center" style={{ backgroundColor: INK }}>
-              <span className="font-medium text-sm">Reserve Salon Services</span>
+              <span className="font-medium text-sm">Reserve Salon Ritual</span>
               <button onClick={() => setIsBookingOpen(false)} aria-label="Close booking dialog">
                 <X size={18} />
               </button>
@@ -570,12 +494,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* FOOTER */}
-      <footer className="py-12 text-center text-xs text-stone-400 border-t mt-20" style={{ backgroundColor: INK }}>
-        <p>Terra Studio Wellness</p>
-        <p>© {new Date().getFullYear()} Terra Studio Ltd. All rights reserved.</p>
-      </footer>
     </div>
   );
 }
