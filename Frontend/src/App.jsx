@@ -84,7 +84,6 @@ export default function App() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  /* Booking Wizard State */
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedTreatment, setSelectedTreatment] = useState(null);
   const [selectedStylist, setSelectedStylist] = useState("No preference");
@@ -94,10 +93,8 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  /* Registered providers (fetched from backend), merged into the stylist list */
   const [providers, setProviders] = useState([]);
 
-  /* Provider Registration State ("Reserve a ritual" opens this) */
   const [isProviderOpen, setIsProviderOpen] = useState(false);
   const [providerForm, setProviderForm] = useState({
     full_name: "", state: "", lga: "", city: "",
@@ -115,7 +112,6 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  /* Load registered providers so they show up as stylist options */
   useEffect(() => {
     fetch(`${API_BASE}/api/providers`)
       .then((r) => (r.ok ? r.json() : []))
@@ -179,7 +175,6 @@ export default function App() {
       .finally(() => setIsSubmitting(false));
   };
 
-  /* Opens the provider registration form */
   const openProviderForm = () => {
     setProviderError("");
     setProviderSuccess(false);
@@ -386,184 +381,3 @@ export default function App() {
                       ))}
                     </div>
                   </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <button onClick={() => setBookingStep(1)} className="flex-1 py-2 text-xs border rounded-lg">Back</button>
-                    <button
-                      disabled={!bookingDate || !bookingTime}
-                      onClick={() => setBookingStep(3)}
-                      className="flex-1 py-2 text-xs text-white rounded-lg disabled:opacity-40"
-                      style={{ backgroundColor: INK }}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {bookingStep === 3 && (
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold" style={{ color: TAUPE }}>Step 3: Contact & Submit</p>
-
-                  <div className="p-3 text-xs rounded-xl" style={{ backgroundColor: SAND }}>
-                    <p className="font-medium">{selectedTreatment?.name}</p>
-                    <p style={{ color: `${INK}88` }}>{bookingDate} @ {bookingTime} ({selectedStylist})</p>
-                  </div>
-
-                  <input
-                    type="text" placeholder="Full Name" value={clientInfo.name}
-                    onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
-                    className="w-full p-2 text-xs border rounded-lg bg-white"
-                  />
-                  <input
-                    type="email" placeholder="Email Address" value={clientInfo.email}
-                    onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
-                    className="w-full p-2 text-xs border rounded-lg bg-white"
-                  />
-                  <input
-                    type="tel" placeholder="Phone Number" value={clientInfo.phone}
-                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
-                    className="w-full p-2 text-xs border rounded-lg bg-white"
-                  />
-
-                  {submitError && (
-                    <p className="text-xs text-red-600">{submitError}</p>
-                  )}
-
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={() => setBookingStep(2)} className="flex-1 py-2 text-xs border rounded-lg">Back</button>
-                    <button
-                      disabled={!clientInfo.name || !clientInfo.email || !clientInfo.phone || isSubmitting}
-                      onClick={handleConfirmReservation}
-                      className="flex-1 py-2 text-xs text-white rounded-lg disabled:opacity-40"
-                      style={{ backgroundColor: CLAY }}
-                    >
-                      {isSubmitting ? "Submitting…" : "Submit Booking"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SERVICE PROVIDER REGISTRATION MODAL (triggered by "Reserve a ritual") */}
-      {isProviderOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
-          <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border animate-scaleIn" style={{ backgroundColor: LINEN }}>
-            <div className="p-4 text-white flex justify-between items-center" style={{ backgroundColor: INK }}>
-              <span className="font-medium text-sm">Become a Terra Studio Provider</span>
-              <button onClick={() => setIsProviderOpen(false)} aria-label="Close registration dialog">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-5 max-h-[75vh] overflow-y-auto">
-              {providerSuccess ? (
-                <div className="text-center py-6">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: `${MOSS}22` }}>
-                    <Check size={22} style={{ color: MOSS }} />
-                  </div>
-                  <p className="text-sm font-semibold mb-1">Your online shop has been opened on Terra Studio!</p>
-                  <p className="text-xs" style={{ color: `${INK}88` }}>
-                    A confirmation has been sent to your email. You'll now appear as a selectable provider under Book Now.
-                  </p>
-                  <button
-                    onClick={() => setIsProviderOpen(false)}
-                    className="mt-5 px-6 py-2 text-xs text-white rounded-lg"
-                    style={{ backgroundColor: INK }}
-                  >
-                    Done
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold mb-1" style={{ color: TAUPE }}>Register as a service provider</p>
-
-                  <input
-                    type="text" placeholder="Full Name" value={providerForm.full_name}
-                    onChange={(e) => setProviderForm({ ...providerForm, full_name: e.target.value })}
-                    className="w-full p-2 text-xs border rounded-lg bg-white"
-                  />
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text" placeholder="State" value={providerForm.state}
-                      onChange={(e) => setProviderForm({ ...providerForm, state: e.target.value })}
-                      className="w-full p-2 text-xs border rounded-lg bg-white"
-                    />
-                    <input
-                      type="text" placeholder="Local Government Area" value={providerForm.lga}
-                      onChange={(e) => setProviderForm({ ...providerForm, lga: e.target.value })}
-                      className="w-full p-2 text-xs border rounded-lg bg-white"
-                    />
-                  </div>
-
-                  <input
-                    type="text" placeholder="City" value={providerForm.city}
-                    onChange={(e) => setProviderForm({ ...providerForm, city: e.target.value })}
-                    className="w-full p-2 text-xs border rounded-lg bg-white"
-                  />
-
-                  <div>
-                    <label className="text-xs font-medium block mb-1">Salon skill</label>
-                    <select
-                      value={providerForm.salon_skill}
-                      onChange={(e) => setProviderForm({ ...providerForm, salon_skill: e.target.value })}
-                      className="w-full p-2 border rounded-lg text-xs bg-white"
-                    >
-                      {SALON_SKILLS.map((skill) => (
-                        <option key={skill} value={skill}>{skill}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <input
-                    type="email" placeholder="Email Address" value={providerForm.email}
-                    onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value })}
-                    className="w-full p-2 text-xs border rounded-lg bg-white"
-                  />
-                  <input
-                    type="tel" placeholder="Phone Number" value={providerForm.phone}
-                    onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value })}
-                    className="w-full p-2 text-xs border rounded-lg bg-white"
-                  />
-
-                  <div>
-                    <label className="text-xs font-medium block mb-1">Passport photo</label>
-                    <label
-                      className="flex items-center justify-center gap-2 w-full p-3 border border-dashed rounded-lg text-xs cursor-pointer bg-white"
-                      style={{ borderColor: TAUPE }}
-                    >
-                      {passportPreview ? (
-                        <img src={passportPreview} alt="Passport preview" className="h-10 w-10 rounded-full object-cover" />
-                      ) : (
-                        <Upload size={16} style={{ color: TAUPE }} />
-                      )}
-                      <span style={{ color: TAUPE }}>{passportPreview ? "Change photo" : "Upload passport photo"}</span>
-                      <input type="file" accept="image/*" onChange={handlePassportChange} className="hidden" />
-                    </label>
-                  </div>
-
-                  {providerError && (
-                    <p className="text-xs text-red-600">{providerError}</p>
-                  )}
-
-                  <button
-                    disabled={!providerFormValid || isProviderSubmitting}
-                    onClick={handleProviderSubmit}
-                    className="w-full py-2.5 text-xs text-white rounded-lg disabled:opacity-40 mt-2"
-                    style={{ backgroundColor: CLAY }}
-                  >
-                    {isProviderSubmitting ? "Submitting…" : "Open my shop on Terra Studio"}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
