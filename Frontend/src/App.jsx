@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Sparkles, Droplets, Scissors, Wand2, Leaf, Gem,
   ShoppingBag, Calendar, Menu, X, ChevronDown, ChevronRight,
-  Plus, Minus, Check, Clock, MapPin, Instagram, ArrowRight
+  Plus, Minus, Check, Clock, MapPin, Instagram, ArrowRight, Upload
 } from "lucide-react";
 
 /* DESIGN TOKENS */
@@ -73,46 +73,14 @@ const CATEGORIES = [
   },
 ];
 
-const PRODUCTS = [
-  { id: "p1", name: "Vitamin C Serum", cat: "Skincare", price: 18500, color: MOSS },
-  { id: "p2", name: "Gua Sha Facial Tool", cat: "Tools", price: 9000, color: "#A9705B" },
-  { id: "p3", name: "Repair Night Cream", cat: "Skincare", price: 22000, color: CLAY },
-  { id: "p4", name: "Scalp Massage Oil", cat: "Hair", price: 12500, color: "#5B4636" },
-  { id: "p5", name: "Lip & Cheek Tint", cat: "Makeup", price: 8500, color: "#B08947" },
-  { id: "p6", name: "SPF 50 Daily Shield", cat: "Skincare", price: 14000, color: "#4F6357" },
-];
-
-const GALLERY = [
-  { id: "g1", cat: "skincare", title: "Hydrafacial glow", icon: Sparkles, color: MOSS },
-  { id: "g2", cat: "spa", title: "Hot stone ritual", icon: Droplets, color: CLAY },
-  { id: "g3", cat: "nails", title: "Terracotta French set", icon: Gem, color: "#A9705B" },
-  { id: "g4", cat: "hair", title: "Balayage finish", icon: Scissors, color: "#5B4636" },
-  { id: "g5", cat: "makeup", title: "Bridal soft-glam", icon: Wand2, color: "#B08947" },
-  { id: "g6", cat: "aesthetic", title: "Post-peel radiance", icon: Leaf, color: "#4F6357" },
-  { id: "g7", cat: "skincare", title: "LED therapy session", icon: Sparkles, color: MOSS },
-  { id: "g8", cat: "spa", title: "Body scrub texture", icon: Droplets, color: CLAY },
-];
-
 const STYLISTS = ["No preference", "Amaka O.", "Tolu B.", "Chidinma E.", "Grace N."];
 const TIMES = ["9:00 AM", "10:30 AM", "12:00 PM", "1:30 PM", "3:00 PM", "4:30 PM", "6:00 PM"];
+const SALON_SKILLS = CATEGORIES.map((c) => c.name);
 
 const naira = (n) => "₦" + n.toLocaleString("en-NG");
 
-function MenuRow({ name, time, price }) {
-  return (
-    <div className="flex items-baseline gap-2 py-2">
-      <span className="text-[15px] font-medium">{name}</span>
-      <span className="flex-1 border-b border-dotted" style={{ borderColor: TAUPE, transform: "translateY(-3px)" }} />
-      <span className="text-xs tracking-wide shrink-0 font-mono" style={{ color: TAUPE }}>{time}</span>
-      <span className="text-sm font-semibold shrink-0 font-mono" style={{ color: INK }}>{naira(price)}</span>
-    </div>
-  );
-}
-
 export default function App() {
   const [scrolled, setScrolled] = useState(false);
-  const [cart, setCart] = useState([]);
-  const [showCartDropdown, setShowCartDropdown] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -126,33 +94,41 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
+  /* Registered providers (fetched from backend), merged into the stylist list */
+  const [providers, setProviders] = useState([]);
+
+  /* Provider Registration State ("Reserve a ritual" opens this) */
+  const [isProviderOpen, setIsProviderOpen] = useState(false);
+  const [providerForm, setProviderForm] = useState({
+    full_name: "", state: "", lga: "", city: "",
+    salon_skill: SALON_SKILLS[0], email: "", phone: "",
+  });
+  const [passportPreview, setPassportPreview] = useState(null);
+  const [passportBase64, setPassportBase64] = useState(null);
+  const [isProviderSubmitting, setIsProviderSubmitting] = useState(false);
+  const [providerError, setProviderError] = useState("");
+  const [providerSuccess, setProviderSuccess] = useState(false);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const addToCart = (product) => {
-    setCart((prev) => {
-      const match = prev.find((item) => item.id === product.id);
-      if (match) return prev.map((item) => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
-      return [...prev, { ...product, qty: 1 }];
-    });
-    setShowCartDropdown(true);
-  };
+  /* Load registered providers so they show up as stylist options */
+  useEffect(() => {
+    fetch(`${API_BASE}/api/providers`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setProviders(Array.isArray(data) ? data : []))
+      .catch(() => setProviders([]));
+  }, [providerSuccess]);
 
-  const updateCartQty = (id, delta) => {
-    setCart((prev) => prev.map((item) => {
-      if (item.id === id) {
-        const nextQty = item.qty + delta;
-        return nextQty > 0 ? { ...item, qty: nextQty } : null;
-      }
-      return item;
-    }).filter(Boolean));
-  };
-
-  const cartCount = cart.reduce((acc, curr) => acc + curr.qty, 0);
-  const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
+  const stylistOptions = [
+    ...STYLISTS,
+    ...providers
+      .map((p) => p.full_name)
+      .filter((name) => !STYLISTS.includes(name)),
+  ];
 
   const startBooking = (treatment = null) => {
     if (treatment) {
@@ -203,6 +179,54 @@ export default function App() {
       .finally(() => setIsSubmitting(false));
   };
 
+  /* Opens the provider registration form */
+  const openProviderForm = () => {
+    setProviderError("");
+    setProviderSuccess(false);
+    setIsProviderOpen(true);
+    setMobileMenuOpen(false);
+  };
+
+  const handlePassportChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPassportBase64(reader.result);
+      setPassportPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleProviderSubmit = () => {
+    setIsProviderSubmitting(true);
+    setProviderError("");
+    fetch(`${API_BASE}/api/providers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...providerForm,
+        passport_photo: passportBase64,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) return response.json().then((err) => { throw new Error(err.detail || "Registration failed"); });
+        return response.json();
+      })
+      .then(() => {
+        setProviderSuccess(true);
+        setProviderForm({ full_name: "", state: "", lga: "", city: "", salon_skill: SALON_SKILLS[0], email: "", phone: "" });
+        setPassportPreview(null);
+        setPassportBase64(null);
+      })
+      .catch((error) => setProviderError(error.message))
+      .finally(() => setIsProviderSubmitting(false));
+  };
+
+  const providerFormValid =
+    providerForm.full_name && providerForm.state && providerForm.lga &&
+    providerForm.city && providerForm.email && providerForm.phone;
+
   return (
     <div className="min-h-screen relative antialiased selection:bg-amber-100" style={{ backgroundColor: SAND, color: INK }}>
 
@@ -212,87 +236,21 @@ export default function App() {
         style={{ background: scrolled ? SAND : "transparent", borderBottom: scrolled ? `1px solid ${TAUPE}44` : "1px solid transparent" }}
       >
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <a
-            href="#top"
-            className="flex items-baseline gap-1.5 px-4 py-1.5 rounded-full"
-            style={{ backgroundColor: scrolled ? "transparent" : "rgba(0,0,0,0.35)" }}
-          >
-            <span style={{ fontFamily: "serif", fontStyle: "italic", color: scrolled ? INK : "white" }} className="text-2xl font-bold">Terra</span>
-            <span style={{ color: CLAY }} className="text-[10px] tracking-[0.25em] uppercase font-bold">Studio</span>
-          </a>
-
-          
+          <div className="flex flex-col gap-0.5">
+            
+              href="#top"
+              className="flex items-baseline gap-1.5 px-4 py-1.5 rounded-full w-fit"
+              style={{ backgroundColor: scrolled ? "transparent" : "rgba(0,0,0,0.35)" }}
+            >
+              <span style={{ fontFamily: "serif", fontStyle: "italic", color: scrolled ? INK : "white" }} className="text-2xl font-bold">Terra</span>
+              <span style={{ color: CLAY }} className="text-[10px] tracking-[0.25em] uppercase font-bold">Studio</span>
+            </a>
+            <p className="pl-4 text-[9px] tracking-[0.15em] uppercase" style={{ color: scrolled ? TAUPE : "rgba(255,255,255,0.75)" }}>
+              Online Wellness Salon
+            </p>
+          </div>
 
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <button
-                onClick={() => setShowCartDropdown(!showCartDropdown)}
-                className="p-2 relative rounded-full hover:bg-stone-200/50"
-                aria-label="Open shopping basket"
-              >
-                <ShoppingBag size={20} />
-                {cartCount > 0 && (
-                  <span
-                    className="absolute -top-0.5 -right-0.5 text-[9px] w-4 h-4 rounded-full flex items-center justify-center text-white font-bold"
-                    style={{ background: CLAY }}
-                  >
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-
-              {showCartDropdown && (
-                <div className="absolute right-0 mt-3 w-80 p-4 rounded-xl shadow-2xl border animate-scaleIn z-50" style={{ backgroundColor: LINEN, borderColor: `${TAUPE}66` }}>
-                  <div className="flex justify-between items-center pb-2 border-b mb-2" style={{ borderColor: TAUPE }}>
-                    <span className="font-semibold text-sm">Shopping Basket</span>
-                    <button onClick={() => setShowCartDropdown(false)} aria-label="Close basket">
-                      <X size={16} />
-                    </button>
-                  </div>
-
-                  {cart.length === 0 ? (
-                    <p className="text-xs py-4 text-center" style={{ color: TAUPE }}>Your cart is empty.</p>
-                  ) : (
-                    <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                      {cart.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium truncate">{item.name}</p>
-                            <p className="text-[11px]" style={{ color: TAUPE }}>{naira(item.price)}</p>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button onClick={() => updateCartQty(item.id, -1)} className="px-1.5 py-0.5 rounded bg-stone-200" aria-label={`Remove one ${item.name}`}>
-                              <Minus size={12} />
-                            </button>
-                            <span className="text-xs w-4 text-center">{item.qty}</span>
-                            <button onClick={() => updateCartQty(item.id, 1)} className="px-1.5 py-0.5 rounded bg-stone-200" aria-label={`Add one ${item.name}`}>
-                              <Plus size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {cart.length > 0 && (
-                    <div className="mt-3 pt-3 border-t" style={{ borderColor: TAUPE }}>
-                      <div className="flex justify-between text-xs font-semibold mb-2">
-                        <span>Total</span>
-                        <span>{naira(cartTotal)}</span>
-                      </div>
-                      <button
-                        onClick={() => { alert("Order simulation submitted!"); setCart([]); setShowCartDropdown(false); }}
-                        className="w-full py-2 text-xs font-bold text-white rounded-lg"
-                        style={{ backgroundColor: INK }}
-                      >
-                        Checkout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             <button
               onClick={() => startBooking()}
               className="hidden md:flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-full text-white"
@@ -309,9 +267,6 @@ export default function App() {
 
         {mobileMenuOpen && (
           <div className="md:hidden flex flex-col gap-4 px-6 pb-6 text-sm font-medium animate-fadeIn" style={{ backgroundColor: SAND }}>
-            <a href="#services" onClick={() => setMobileMenuOpen(false)}>Services</a>
-            <a href="#apothecary" onClick={() => setMobileMenuOpen(false)}>Apothecary</a>
-            <a href="#gallery" onClick={() => setMobileMenuOpen(false)}>Gallery</a>
             <button onClick={() => startBooking()} className="py-2.5 rounded-full text-white text-center" style={{ background: INK }}>
               Book Now
             </button>
@@ -328,7 +283,6 @@ export default function App() {
           backgroundPosition: "center 20%",
         }}
       >
-        {/* Gradient overlay: subtle at top, darker toward bottom for text contrast */}
         <div
           className="absolute inset-0"
           style={{
@@ -337,7 +291,6 @@ export default function App() {
         />
 
         <div className="relative z-10">
-          <p className="text-xs tracking-[0.3em] uppercase mb-4 text-white/90">Port Harcourt · Wellness Salon</p>
           <h1 className="text-4xl md:text-6xl font-serif italic max-w-2xl mx-auto leading-tight text-white">
             Slow down. Be tended to.
           </h1>
@@ -345,7 +298,7 @@ export default function App() {
             Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
           </p>
           <button
-            onClick={() => startBooking()}
+            onClick={openProviderForm}
             className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-medium shadow-lg"
             style={{ backgroundColor: CLAY }}
           >
@@ -354,7 +307,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* INTERACTIVE COMPREHENSIVE SCHEDULER WIZARD */}
+      {/* CUSTOMER BOOKING WIZARD (triggered by "Book Now") */}
       {isBookingOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
           <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border animate-scaleIn" style={{ backgroundColor: LINEN }}>
@@ -402,7 +355,7 @@ export default function App() {
                       onChange={(e) => setSelectedStylist(e.target.value)}
                       className="w-full p-2 border rounded-lg text-xs bg-white"
                     >
-                      {STYLISTS.map((st) => (
+                      {stylistOptions.map((st) => (
                         <option key={st} value={st}>{st}</option>
                       ))}
                     </select>
@@ -488,6 +441,123 @@ export default function App() {
                       {isSubmitting ? "Submitting…" : "Submit Booking"}
                     </button>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SERVICE PROVIDER REGISTRATION MODAL (triggered by "Reserve a ritual") */}
+      {isProviderOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border animate-scaleIn" style={{ backgroundColor: LINEN }}>
+            <div className="p-4 text-white flex justify-between items-center" style={{ backgroundColor: INK }}>
+              <span className="font-medium text-sm">Become a Terra Studio Provider</span>
+              <button onClick={() => setIsProviderOpen(false)} aria-label="Close registration dialog">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 max-h-[75vh] overflow-y-auto">
+              {providerSuccess ? (
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: `${MOSS}22` }}>
+                    <Check size={22} style={{ color: MOSS }} />
+                  </div>
+                  <p className="text-sm font-semibold mb-1">Your online shop has been opened on Terra Studio!</p>
+                  <p className="text-xs" style={{ color: `${INK}88` }}>
+                    A confirmation has been sent to your email. You'll now appear as a selectable provider under Book Now.
+                  </p>
+                  <button
+                    onClick={() => setIsProviderOpen(false)}
+                    className="mt-5 px-6 py-2 text-xs text-white rounded-lg"
+                    style={{ backgroundColor: INK }}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold mb-1" style={{ color: TAUPE }}>Register as a service provider</p>
+
+                  <input
+                    type="text" placeholder="Full Name" value={providerForm.full_name}
+                    onChange={(e) => setProviderForm({ ...providerForm, full_name: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text" placeholder="State" value={providerForm.state}
+                      onChange={(e) => setProviderForm({ ...providerForm, state: e.target.value })}
+                      className="w-full p-2 text-xs border rounded-lg bg-white"
+                    />
+                    <input
+                      type="text" placeholder="Local Government Area" value={providerForm.lga}
+                      onChange={(e) => setProviderForm({ ...providerForm, lga: e.target.value })}
+                      className="w-full p-2 text-xs border rounded-lg bg-white"
+                    />
+                  </div>
+
+                  <input
+                    type="text" placeholder="City" value={providerForm.city}
+                    onChange={(e) => setProviderForm({ ...providerForm, city: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
+
+                  <div>
+                    <label className="text-xs font-medium block mb-1">Salon skill</label>
+                    <select
+                      value={providerForm.salon_skill}
+                      onChange={(e) => setProviderForm({ ...providerForm, salon_skill: e.target.value })}
+                      className="w-full p-2 border rounded-lg text-xs bg-white"
+                    >
+                      {SALON_SKILLS.map((skill) => (
+                        <option key={skill} value={skill}>{skill}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <input
+                    type="email" placeholder="Email Address" value={providerForm.email}
+                    onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
+                  <input
+                    type="tel" placeholder="Phone Number" value={providerForm.phone}
+                    onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
+
+                  <div>
+                    <label className="text-xs font-medium block mb-1">Passport photo</label>
+                    <label
+                      className="flex items-center justify-center gap-2 w-full p-3 border border-dashed rounded-lg text-xs cursor-pointer bg-white"
+                      style={{ borderColor: TAUPE }}
+                    >
+                      {passportPreview ? (
+                        <img src={passportPreview} alt="Passport preview" className="h-10 w-10 rounded-full object-cover" />
+                      ) : (
+                        <Upload size={16} style={{ color: TAUPE }} />
+                      )}
+                      <span style={{ color: TAUPE }}>{passportPreview ? "Change photo" : "Upload passport photo"}</span>
+                      <input type="file" accept="image/*" onChange={handlePassportChange} className="hidden" />
+                    </label>
+                  </div>
+
+                  {providerError && (
+                    <p className="text-xs text-red-600">{providerError}</p>
+                  )}
+
+                  <button
+                    disabled={!providerFormValid || isProviderSubmitting}
+                    onClick={handleProviderSubmit}
+                    className="w-full py-2.5 text-xs text-white rounded-lg disabled:opacity-40 mt-2"
+                    style={{ backgroundColor: CLAY }}
+                  >
+                    {isProviderSubmitting ? "Submitting…" : "Open my shop on Terra Studio"}
+                  </button>
                 </div>
               )}
             </div>

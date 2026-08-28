@@ -1,10 +1,12 @@
 import os
 import sqlite3
-from typing import List
+import smtplib
+from email.mime.text import MIMEText
+from typing import List, Optional
 from contextlib import contextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel  # Assuming you are using Pydantic for your models
+from pydantic import BaseModel
 
 # --- 1. App Initialization & CORS ---
 app = FastAPI(title="Terra Studio Live API Engine")
@@ -40,6 +42,20 @@ def init_db():
                 status TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS providers (
+                provider_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                state TEXT NOT NULL,
+                lga TEXT NOT NULL,
+                city TEXT NOT NULL,
+                salon_skill TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                passport_photo TEXT,
+                status TEXT NOT NULL
+            )
+        """)
 
 init_db()
 
@@ -53,8 +69,6 @@ def get_conn():
         conn.close()
 
 # --- 3. Pydantic Schemas ---
-# Note: Ensure you define TreatmentPayload, BookingPayload, and BookingConfirmation here
-# Example placeholders:
 class TreatmentPayload(BaseModel):
     name: str
 
@@ -75,7 +89,56 @@ class BookingConfirmation(BaseModel):
     time_slot: str
     status: str
 
-# --- 4. API Endpoints ---
+class ProviderPayload(BaseModel):
+    full_name: str
+    state: str
+    lga: str
+    city: str
+    salon_skill: str
+    email: str
+    phone: str
+    passport_photo: Optional[str] = None
+
+class ProviderRecord(BaseModel):
+    provider_id: int
+    full_name: str
+    state: str
+    lga: str
+    city: str
+    salon_skill: str
+    email: str
+    phone: str
+    status: str
+
+# --- 4. Email helper (requires SMTP env vars to actually send) ---
+def send_welcome_email(to_email: str, full_name: str) -> bool:
+    host = os.getenv("SMTP_HOST")
+    port = os.getenv("SMTP_PORT")
+    user = os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASS")
+    sender = os.getenv("SMTP_FROM", user)
+
+    if not all([host, port, user, password]):
+        return False
+
+    try:
+        msg = MIMEText(
+            f"Hi {full_name},\n\nYour online shop has been opened on Terra Studio. "
+            f"You can now be booked by customers through our platform.\n\n— Terra Studio Team"
+        )
+        msg["Subject"] = "Your online shop has been opened on Terra Studio"
+        msg["From"] = sender
+        msg["To"] = to_email
+
+        with smtplib.SMTP(host, int(port)) as server:
+            server.starttls()
+            server.login(user, password)
+            server.sendmail(sender, [to_email], msg.as_string())
+        return True
+    except Exception:
+        return False
+
+# --- 5. API Endpoints ---
 @app.post("/api/bookings", response_model=BookingConfirmation, status_code=201)
 def reserve_appointment(payload: BookingPayload):
     with get_conn() as conn:
@@ -110,4 +173,40 @@ def reserve_appointment(payload: BookingPayload):
 def view_all_bookings():
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM bookings").fetchall()
+        return [dict(r) for r in rows]
+
+@app.post("/api/providers", response_model=ProviderRecord, status_code=201)
+def register_provider(payload: ProviderPayload):
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO providers
+               (full_name, state, lga, city, salon_skill, email, phone, passport_photo, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (payload.full_name, payload.state, payload.lga, payload.city,
+             payload.salon_skill, payload.email, payload.phone,
+             payload.passport_photo, "Active")
+        )
+        conn.commit()
+        provider_id = cur.lastrowid
+
+    email_sent = send_welcome_email(payload.email, payload.full_name)
+
+    return {
+        "provider_id": provider_id,
+        "full_name": payload.full_name,
+        "state": payload.state,
+        "lga": payload.lga,
+        "city": payload.city,
+        "salon_skill": payload.salon_skill,
+        "email": payload.email,
+        "phone": payload.phone,
+        "status": "Active" if email_sent else "Active (email not sent — SMTP not configured)"
+    }
+
+@app.get("/api/providers", response_model=List[ProviderRecord])
+def list_providers():
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT provider_id, full_name, state, lga, city, salon_skill, email, phone, status FROM providers"
+        ).fetchall()
         return [dict(r) for r in rows]
