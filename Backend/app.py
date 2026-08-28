@@ -210,3 +210,8 @@ def list_providers():
             "SELECT provider_id, full_name, state, lga, city, salon_skill, email, phone, status FROM providers"
         ).fetchall()
         return [dict(r) for r in rows]
+    
+# --- 6. Launch the server when running `python app.py` directly ---
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
