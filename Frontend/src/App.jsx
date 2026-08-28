@@ -160,7 +160,7 @@ export default function App() {
         return response.json();
       })
       .then(data => {
-        alert(`Ritual Successfully Booked! Booking reference ID: ${data.booking_id}`);
+        alert(`Service Successfully Booked! Booking reference ID: ${data.booking_id}`);
         setIsBookingOpen(false);
         setBookingStep(1);
         setSelectedTreatment(null);
@@ -288,7 +288,7 @@ export default function App() {
 
         <div className="relative z-10">
           <h1 className="text-4xl md:text-6xl font-serif italic max-w-2xl mx-auto leading-tight text-white">
-            Slow down. Be tended to.
+            Bringing Beauty to Your doorstep
           </h1>
           <p className="max-w-md mx-auto mt-5 text-sm text-white/85">
             Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
@@ -298,7 +298,7 @@ export default function App() {
             className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-medium shadow-lg"
             style={{ backgroundColor: CLAY }}
           >
-            Reserve a ritual <ArrowRight size={16} />
+            Get shop  <ArrowRight size={16} />
           </button>
         </div>
       </section>
@@ -308,7 +308,7 @@ export default function App() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fadeIn">
           <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border animate-scaleIn" style={{ backgroundColor: LINEN }}>
             <div className="p-4 text-white flex justify-between items-center" style={{ backgroundColor: INK }}>
-              <span className="font-medium text-sm">Reserve Salon Ritual</span>
+              <span className="font-medium text-sm">Reserve Salon service</span>
               <button onClick={() => setIsBookingOpen(false)} aria-label="Close booking dialog">
                 <X size={18} />
               </button>
