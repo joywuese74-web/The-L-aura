@@ -233,7 +233,8 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex flex-col gap-0.5">
             
-              href="#top"
+            <a
+                href="#top"
               className="flex items-baseline gap-1.5 px-4 py-1.5 rounded-full w-fit"
               style={{ backgroundColor: scrolled ? "transparent" : "rgba(0,0,0,0.35)" }}
             >
