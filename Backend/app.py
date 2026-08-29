@@ -1,7 +1,6 @@
 import os
 import sqlite3
-import smtplib
-from email.mime.text import MIMEText
+import requests
 from typing import List, Optional
 from contextlib import contextmanager
 from fastapi import FastAPI, HTTPException
@@ -110,37 +109,41 @@ class ProviderRecord(BaseModel):
     phone: str
     status: str
 
-# --- 4. Email helper (requires SMTP env vars to actually send) ---
+# --- 4. Email helper (uses Brevo's HTTP API — SMTP ports are blocked on Render's free tier) ---
 def send_welcome_email(to_email: str, full_name: str) -> bool:
-    host = os.getenv("SMTP_HOST")
-    port = os.getenv("SMTP_PORT")
-    user = os.getenv("SMTP_USER")
-    password = os.getenv("SMTP_PASS")
-    sender = os.getenv("SMTP_FROM", user)
+    api_key = os.getenv("BREVO_API_KEY")
+    sender_email = os.getenv("SMTP_FROM")
 
-    if not all([host, port, user, password]):
-        print(f"EMAIL SKIPPED: missing SMTP env vars (host={bool(host)}, port={bool(port)}, user={bool(user)}, password={bool(password)})")
-        
+    if not all([api_key, sender_email]):
+        print(f"EMAIL SKIPPED: missing env vars (api_key={bool(api_key)}, sender_email={bool(sender_email)})")
         return False
 
     try:
-        msg = MIMEText(
-            f"Hi {full_name},\n\nYour online shop has been opened on Terra Studio. "
-            f"You can now be booked by customers through our platform.\n\n— Terra Studio Team"
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json={
+                "sender": {"email": sender_email, "name": "Terra Studio"},
+                "to": [{"email": to_email, "name": full_name}],
+                "subject": "Your online shop has been opened on Terra Studio",
+                "textContent": (
+                    f"Hi {full_name},\n\nYour online shop has been opened on Terra Studio. "
+                    f"You can now be booked by customers through our platform.\n\n— Terra Studio Team"
+                ),
+            },
+            timeout=10,
         )
-        msg["Subject"] = "Your online shop has been opened on Terra Studio"
-        msg["From"] = sender
-        msg["To"] = to_email
-
-        with smtplib.SMTP(host, int(port)) as server:
-            server.starttls()
-            server.login(user, password)
-            server.sendmail(sender, [to_email], msg.as_string())
-        return True
+        if response.status_code in (200, 201):
+            return True
+        print(f"EMAIL FAILED: Brevo API returned {response.status_code}: {response.text}")
+        return False
     except Exception as e:
         print(f"EMAIL FAILED: {type(e).__name__}: {e}")
         return False
-
 # --- 5. API Endpoints ---
 @app.post("/api/bookings", response_model=BookingConfirmation, status_code=201)
 def reserve_appointment(payload: BookingPayload):
