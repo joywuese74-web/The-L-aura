@@ -14,7 +14,7 @@ const MOSS = "#6E7C4F";
 const TAUPE = "#B7A78C";
 
 /* API base — configurable per environment instead of hardcoded */
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "https://the-l-aura.onrender.com";
 
 const CATEGORIES = [
   {
