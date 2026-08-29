@@ -119,6 +119,8 @@ def send_welcome_email(to_email: str, full_name: str) -> bool:
     sender = os.getenv("SMTP_FROM", user)
 
     if not all([host, port, user, password]):
+        print(f"EMAIL SKIPPED: missing SMTP env vars (host={bool(host)}, port={bool(port)}, user={bool(user)}, password={bool(password)})")
+        
         return False
 
     try:
@@ -135,7 +137,8 @@ def send_welcome_email(to_email: str, full_name: str) -> bool:
             server.login(user, password)
             server.sendmail(sender, [to_email], msg.as_string())
         return True
-    except Exception:
+    except Exception as e:
+        print(f"EMAIL FAILED: {type(e).__name__}: {e}")
         return False
 
 # --- 5. API Endpoints ---
