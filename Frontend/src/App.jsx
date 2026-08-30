@@ -79,6 +79,31 @@ const SALON_SKILLS = CATEGORIES.map((c) => c.name);
 
 const naira = (n) => "₦" + n.toLocaleString("en-NG");
 
+/* Distance between two coordinates in km, using the Haversine formula */
+const distanceKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const requestLocation = (onSuccess, onError) => {
+  if (!navigator.geolocation) {
+    onError();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => onSuccess({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+    () => onError(),
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+};
+
 export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -86,7 +111,7 @@ export default function App() {
 
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedTreatment, setSelectedTreatment] = useState(null);
-  const [selectedStylist, setSelectedStylist] = useState("No preference");
+  const [selectedStylist, setSelectedStylist] = useState({ full_name: "No preference", passport_photo: null });
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
   const [clientInfo, setClientInfo] = useState({ name: "", email: "", phone: "" });
@@ -94,12 +119,16 @@ export default function App() {
   const [submitError, setSubmitError] = useState("");
 
   const [providers, setProviders] = useState([]);
+  const [customerLocation, setCustomerLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("idle"); // idle | loading | granted | denied
 
   const [isProviderOpen, setIsProviderOpen] = useState(false);
   const [providerForm, setProviderForm] = useState({
-    full_name: "", state: "", lga: "", city: "",
+    full_name: "", state: "", lga: "", city: "", address: "",
     salon_skill: SALON_SKILLS[0], email: "", phone: "",
   });
+  const [providerLocation, setProviderLocation] = useState(null);
+  const [providerLocationStatus, setProviderLocationStatus] = useState("idle");
   const [passportPreview, setPassportPreview] = useState(null);
   const [passportBase64, setPassportBase64] = useState(null);
   const [isProviderSubmitting, setIsProviderSubmitting] = useState(false);
@@ -119,12 +148,50 @@ export default function App() {
       .catch(() => setProviders([]));
   }, [providerSuccess]);
 
-  const stylistOptions = [
-    ...STYLISTS,
-    ...providers
-      .map((p) => p.full_name)
-      .filter((name) => !STYLISTS.includes(name)),
-  ];
+  const stylistOptions = React.useMemo(() => {
+    const fallbackStylists = STYLISTS.filter((s) => s !== "No preference").map((name) => ({
+      full_name: name,
+      passport_photo: null,
+      latitude: null,
+      longitude: null,
+    }));
+
+    const realProviders = providers.filter(
+      (p) => !STYLISTS.includes(p.full_name)
+    );
+
+    const combined = [...realProviders, ...fallbackStylists];
+
+    const withDistance = combined.map((p) => {
+      const hasCoords =
+        customerLocation && p.latitude != null && p.longitude != null;
+      return {
+        ...p,
+        distance: hasCoords
+          ? distanceKm(customerLocation.lat, customerLocation.lng, p.latitude, p.longitude)
+          : null,
+      };
+    });
+
+    withDistance.sort((a, b) => {
+      if (a.distance == null && b.distance == null) return 0;
+      if (a.distance == null) return 1;
+      if (b.distance == null) return -1;
+      return a.distance - b.distance;
+    });
+
+    return [{ full_name: "No preference", passport_photo: null, distance: null }, ...withDistance];
+  }, [providers, customerLocation]);
+
+  useEffect(() => {
+    if (isBookingOpen && locationStatus === "idle") {
+      setLocationStatus("loading");
+      requestLocation(
+        (loc) => { setCustomerLocation(loc); setLocationStatus("granted"); },
+        () => setLocationStatus("denied")
+      );
+    }
+  }, [isBookingOpen, locationStatus]);
 
   const startBooking = (treatment = null) => {
     if (treatment) {
@@ -147,7 +214,7 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         treatment: selectedTreatment,
-        stylist: selectedStylist,
+        stylist: selectedStylist.full_name,
         date: bookingDate,
         time_slot: bookingTime,
         client_name: clientInfo.name,
@@ -164,7 +231,7 @@ export default function App() {
         setIsBookingOpen(false);
         setBookingStep(1);
         setSelectedTreatment(null);
-        setSelectedStylist("No preference");
+        setSelectedStylist({ full_name: "No preference", passport_photo: null });
         setBookingDate("");
         setBookingTime("");
         setClientInfo({ name: "", email: "", phone: "" });
@@ -201,6 +268,8 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...providerForm,
+        latitude: providerLocation?.lat ?? null,
+        longitude: providerLocation?.lng ?? null,
         passport_photo: passportBase64,
       }),
     })
@@ -210,7 +279,9 @@ export default function App() {
       })
       .then(() => {
         setProviderSuccess(true);
-        setProviderForm({ full_name: "", state: "", lga: "", city: "", salon_skill: SALON_SKILLS[0], email: "", phone: "" });
+        setProviderForm({ full_name: "", state: "", lga: "", city: "", address: "", salon_skill: SALON_SKILLS[0], email: "", phone: "" });
+        setProviderLocation(null);
+        setProviderLocationStatus("idle");
         setPassportPreview(null);
         setPassportBase64(null);
       })
@@ -346,15 +417,48 @@ export default function App() {
 
                   <div>
                     <label className="text-xs font-medium block mb-1">Practitioner preference</label>
-                    <select
-                      value={selectedStylist}
-                      onChange={(e) => setSelectedStylist(e.target.value)}
-                      className="w-full p-2 border rounded-lg text-xs bg-white"
-                    >
+                    {locationStatus === "loading" && (
+                      <p className="text-[10px] mb-1.5" style={{ color: TAUPE }}>Finding practitioners near you…</p>
+                    )}
+                    {locationStatus === "denied" && (
+                      <p className="text-[10px] mb-1.5" style={{ color: TAUPE }}>
+                        Location unavailable — showing all practitioners.
+                      </p>
+                    )}
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                       {stylistOptions.map((st) => (
-                        <option key={st} value={st}>{st}</option>
+                        <button
+                          key={st.full_name}
+                          onClick={() => setSelectedStylist(st)}
+                          className="w-full p-2 rounded-lg border text-left text-xs flex items-center gap-2.5 bg-white"
+                          style={{
+                            borderColor: selectedStylist.full_name === st.full_name ? INK : `${TAUPE}66`,
+                            borderWidth: selectedStylist.full_name === st.full_name ? 2 : 1,
+                          }}
+                        >
+                          {st.passport_photo ? (
+                            <img
+                              src={st.passport_photo}
+                              alt={st.full_name}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-semibold"
+                              style={{ backgroundColor: SAND, color: TAUPE }}
+                            >
+                              {st.full_name === "No preference" ? "—" : st.full_name.charAt(0)}
+                            </div>
+                          )}
+                          <span className="flex-1">{st.full_name}</span>
+                          {st.distance != null && (
+                            <span className="text-[10px] font-mono" style={{ color: TAUPE }}>
+                              {st.distance < 1 ? "<1 km" : `${st.distance.toFixed(1)} km`}
+                            </span>
+                          )}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
                   <div>
@@ -403,7 +507,7 @@ export default function App() {
 
                   <div className="p-3 text-xs rounded-xl" style={{ backgroundColor: SAND }}>
                     <p className="font-medium">{selectedTreatment?.name}</p>
-                    <p style={{ color: `${INK}88` }}>{bookingDate} @ {bookingTime} ({selectedStylist})</p>
+                    <p style={{ color: `${INK}88` }}>{bookingDate} @ {bookingTime} ({selectedStylist.full_name})</p>
                   </div>
 
                   <input
@@ -501,6 +605,37 @@ export default function App() {
                     onChange={(e) => setProviderForm({ ...providerForm, city: e.target.value })}
                     className="w-full p-2 text-xs border rounded-lg bg-white"
                   />
+
+                  <input
+                    type="text" placeholder="Street Address" value={providerForm.address}
+                    onChange={(e) => setProviderForm({ ...providerForm, address: e.target.value })}
+                    className="w-full p-2 text-xs border rounded-lg bg-white"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProviderLocationStatus("loading");
+                      requestLocation(
+                        (loc) => { setProviderLocation(loc); setProviderLocationStatus("granted"); },
+                        () => setProviderLocationStatus("denied")
+                      );
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 p-2 text-xs border rounded-lg bg-white"
+                    style={{ borderColor: TAUPE, color: providerLocationStatus === "granted" ? MOSS : TAUPE }}
+                  >
+                    <MapPin size={14} />
+                    {providerLocationStatus === "granted"
+                      ? "Location captured ✓"
+                      : providerLocationStatus === "loading"
+                      ? "Getting your location…"
+                      : providerLocationStatus === "denied"
+                      ? "Location unavailable — try again"
+                      : "Use my current location"}
+                  </button>
+                  <p className="text-[10px] -mt-1" style={{ color: `${INK}66` }}>
+                    Helps customers near you find your shop first when booking.
+                  </p>
 
                   <div>
                     <label className="text-xs font-medium block mb-1">Salon skill</label>

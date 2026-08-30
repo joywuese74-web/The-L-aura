@@ -48,6 +48,9 @@ def init_db():
                 state TEXT NOT NULL,
                 lga TEXT NOT NULL,
                 city TEXT NOT NULL,
+                address TEXT,
+                latitude REAL,
+                longitude REAL,
                 salon_skill TEXT NOT NULL,
                 email TEXT NOT NULL,
                 phone TEXT NOT NULL,
@@ -93,6 +96,9 @@ class ProviderPayload(BaseModel):
     state: str
     lga: str
     city: str
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     salon_skill: str
     email: str
     phone: str
@@ -104,9 +110,13 @@ class ProviderRecord(BaseModel):
     state: str
     lga: str
     city: str
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     salon_skill: str
     email: str
     phone: str
+    passport_photo: Optional[str] = None
     status: str
 
 # --- 4. Email helper (uses Brevo's HTTP API — SMTP ports are blocked on Render's free tier) ---
@@ -186,9 +196,10 @@ def register_provider(payload: ProviderPayload):
     with get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO providers
-               (full_name, state, lga, city, salon_skill, email, phone, passport_photo, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (full_name, state, lga, city, address, latitude, longitude, salon_skill, email, phone, passport_photo, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (payload.full_name, payload.state, payload.lga, payload.city,
+             payload.address, payload.latitude, payload.longitude,
              payload.salon_skill, payload.email, payload.phone,
              payload.passport_photo, "Active")
         )
@@ -203,9 +214,13 @@ def register_provider(payload: ProviderPayload):
         "state": payload.state,
         "lga": payload.lga,
         "city": payload.city,
+        "address": payload.address,
+        "latitude": payload.latitude,
+        "longitude": payload.longitude,
         "salon_skill": payload.salon_skill,
         "email": payload.email,
         "phone": payload.phone,
+        "passport_photo": payload.passport_photo,
         "status": "Active" if email_sent else "Active (email not sent — SMTP not configured)"
     }
 
@@ -213,7 +228,8 @@ def register_provider(payload: ProviderPayload):
 def list_providers():
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT provider_id, full_name, state, lga, city, salon_skill, email, phone, status FROM providers"
+            """SELECT provider_id, full_name, state, lga, city, address, latitude, longitude,
+                      salon_skill, email, phone, passport_photo, status FROM providers"""
         ).fetchall()
         return [dict(r) for r in rows]
     
