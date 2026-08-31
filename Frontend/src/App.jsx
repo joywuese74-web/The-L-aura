@@ -15,6 +15,7 @@ const TAUPE = "#B7A78C";
 
 /* API base — configurable per environment instead of hardcoded */
 const API_BASE = import.meta.env.VITE_API_URL || "https://the-l-aura.onrender.com";
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_test_39943c9c4ad8d7658e5e6bc16baeb9c01ca2a2ff";
 
 const CATEGORIES = [
   {
@@ -117,6 +118,8 @@ export default function App() {
   const [clientInfo, setClientInfo] = useState({ name: "", email: "", phone: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [paymentReference, setPaymentReference] = useState(null);
+  const [isPaying, setIsPaying] = useState(false);
 
   const [providers, setProviders] = useState([]);
   const [customerLocation, setCustomerLocation] = useState(null);
@@ -206,7 +209,7 @@ export default function App() {
     setMobileMenuOpen(false);
   };
 
-  const handleConfirmReservation = () => {
+  const finalizeBooking = (reference) => {
     setIsSubmitting(true);
     setSubmitError("");
     fetch(`${API_BASE}/api/bookings`, {
@@ -219,7 +222,8 @@ export default function App() {
         time_slot: bookingTime,
         client_name: clientInfo.name,
         client_email: clientInfo.email,
-        client_phone: clientInfo.phone
+        client_phone: clientInfo.phone,
+        payment_reference: reference,
       })
     })
       .then(response => {
@@ -227,7 +231,7 @@ export default function App() {
         return response.json();
       })
       .then(data => {
-        alert(`Service Successfully Booked! Booking reference ID: ${data.booking_id}`);
+        alert(`Payment successful! Service Booked. Booking reference ID: ${data.booking_id}`);
         setIsBookingOpen(false);
         setBookingStep(1);
         setSelectedTreatment(null);
@@ -235,11 +239,42 @@ export default function App() {
         setBookingDate("");
         setBookingTime("");
         setClientInfo({ name: "", email: "", phone: "" });
+        setPaymentReference(null);
       })
       .catch(error => {
         setSubmitError(error.message);
       })
       .finally(() => setIsSubmitting(false));
+  };
+
+  const handlePayAndBook = () => {
+    if (!PAYSTACK_PUBLIC_KEY) {
+      setSubmitError("Payments are not yet configured. Please check back soon.");
+      return;
+    }
+    if (!window.PaystackPop) {
+      setSubmitError("Payment system is still loading — please try again in a moment.");
+      return;
+    }
+    setSubmitError("");
+    setIsPaying(true);
+    const reference = `TS_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    const handler = window.PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: clientInfo.email,
+      amount: selectedTreatment.price * 100,
+      currency: "NGN",
+      ref: reference,
+      callback: (response) => {
+        setIsPaying(false);
+        setPaymentReference(response.reference);
+        finalizeBooking(response.reference);
+      },
+      onClose: () => {
+        setIsPaying(false);
+      },
+    });
+    handler.openIframe();
   };
 
   const openProviderForm = () => {
@@ -526,6 +561,11 @@ export default function App() {
                     className="w-full p-2 text-xs border rounded-lg bg-white"
                   />
 
+                  <div className="p-3 text-xs rounded-xl flex justify-between items-center" style={{ backgroundColor: SAND }}>
+                    <span>Amount to pay</span>
+                    <span className="font-mono font-semibold">{naira(selectedTreatment?.price || 0)}</span>
+                  </div>
+
                   {submitError && (
                     <p className="text-xs text-red-600">{submitError}</p>
                   )}
@@ -533,12 +573,12 @@ export default function App() {
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setBookingStep(2)} className="flex-1 py-2 text-xs border rounded-lg">Back</button>
                     <button
-                      disabled={!clientInfo.name || !clientInfo.email || !clientInfo.phone || isSubmitting}
-                      onClick={handleConfirmReservation}
+                      disabled={!clientInfo.name || !clientInfo.email || !clientInfo.phone || isSubmitting || isPaying}
+                      onClick={handlePayAndBook}
                       className="flex-1 py-2 text-xs text-white rounded-lg disabled:opacity-40"
                       style={{ backgroundColor: CLAY }}
                     >
-                      {isSubmitting ? "Submitting…" : "Submit Booking"}
+                      {isPaying ? "Opening payment…" : isSubmitting ? "Confirming…" : `Pay ${naira(selectedTreatment?.price || 0)} & Book`}
                     </button>
                   </div>
                 </div>
