@@ -356,7 +356,7 @@ export default function App() {
             <button
               onClick={() => startBooking()}
               className="hidden md:flex items-center gap-2 text-base font-medium px-8 py-3.5 rounded-full text-white"
-              style={{ background: INK }}
+              style={{ background: CLAY }}
             >
               Book Now
             </button>
@@ -369,7 +369,7 @@ export default function App() {
 
         {mobileMenuOpen && (
           <div className="md:hidden flex flex-col gap-4 px-6 pb-6 text-sm font-medium animate-fadeIn" style={{ backgroundColor: SAND }}>
-            <button onClick={() => startBooking()} className="py-2.5 rounded-full text-white text-center" style={{ background: INK }}>
+            <button onClick={() => startBooking()} className="py-2.5 rounded-full text-white text-center" style={{ background: CLAY }}>
               Book Now
             </button>
           </div>
