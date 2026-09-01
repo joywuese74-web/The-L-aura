@@ -111,7 +111,7 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [activePanel, setActivePanel] = useState(null); // 'admin' | 'rating' | 'caution' | 'disclaimer' | 'support' | 'gallery'
 
   const [bookingStep, setBookingStep] = useState(1);
@@ -333,12 +333,19 @@ export default function App() {
     providerForm.city && providerForm.email && providerForm.phone;
 
   return (
-    <div className="min-h-screen relative antialiased selection:bg-amber-100" style={{ backgroundColor: SAND, color: INK }}>
+    <div
+      className="min-h-screen relative antialiased selection:bg-amber-100 transition-all duration-300"
+      style={{ backgroundColor: SAND, color: INK, marginLeft: isDrawerOpen ? "18rem" : 0 }}
+    >
 
       {/* HEADER NAVBAR */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-        style={{ background: scrolled ? SAND : "transparent", borderBottom: scrolled ? `1px solid ${TAUPE}44` : "1px solid transparent" }}
+        className="fixed top-0 right-0 z-50 transition-all duration-300"
+        style={{
+          left: isDrawerOpen ? "18rem" : 0,
+          background: scrolled ? SAND : "transparent",
+          borderBottom: scrolled ? `1px solid ${TAUPE}44` : "1px solid transparent"
+        }}
       >
         <div className="w-full px-6 md:px-10 h-24 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -757,36 +764,36 @@ export default function App() {
         </div>
       )}
 
-      {/* LEFT DRAWER MENU */}
+      {/* LEFT DRAWER MENU (persistent sidebar) */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 z-[60] flex">
-          <div className="absolute inset-0" style={{ backgroundColor: `${INK}66` }} onClick={() => setIsDrawerOpen(false)} />
-          <div className="relative w-72 h-full bg-white shadow-xl p-5 flex flex-col gap-1 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <span style={{ fontFamily: "serif", fontStyle: "italic", color: INK }} className="text-2xl font-bold">
-                Terra <span style={{ fontFamily: "sans-serif", fontStyle: "normal", color: CLAY }} className="text-xs tracking-[0.2em] uppercase align-middle">Studio</span>
-              </span>
-              <button onClick={() => setIsDrawerOpen(false)}><X size={22} /></button>
-            </div>
-            {[
-              { key: "admin", label: "Admin", icon: Lock },
-              { key: "rating", label: "Rating", icon: Star },
-              { key: "caution", label: "Caution", icon: ShieldAlert },
-              { key: "disclaimer", label: "Platform Disclaimer", icon: AlertTriangle },
-              { key: "support", label: "Support", icon: Headphones },
-              { key: "gallery", label: "Gallery", icon: ImageIcon },
-            ].map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => { setActivePanel(key); setIsDrawerOpen(false); }}
-                className="flex items-center gap-3 p-3 rounded-lg text-sm text-left hover:bg-black/5"
-                style={{ color: INK }}
-              >
-                <Icon size={18} style={{ color: CLAY }} />
-                {label}
-              </button>
-            ))}
+        <div
+          className="fixed left-0 top-0 h-full w-72 z-[60] shadow-xl p-5 flex flex-col gap-1 overflow-y-auto"
+          style={{ backgroundColor: LINEN }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <span style={{ fontFamily: "serif", fontStyle: "italic", color: INK }} className="text-2xl font-bold">
+              Terra <span style={{ fontFamily: "sans-serif", fontStyle: "normal", color: CLAY }} className="text-xs tracking-[0.2em] uppercase align-middle">Studio</span>
+            </span>
+            <button onClick={() => setIsDrawerOpen(false)}><X size={22} /></button>
           </div>
+          {[
+            { key: "admin", label: "Admin", icon: Lock },
+            { key: "rating", label: "Rating", icon: Star },
+            { key: "caution", label: "Caution", icon: ShieldAlert },
+            { key: "disclaimer", label: "Platform Disclaimer", icon: AlertTriangle },
+            { key: "support", label: "Support", icon: Headphones },
+            { key: "gallery", label: "Gallery", icon: ImageIcon },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActivePanel(key)}
+              className="flex items-center gap-3 p-3 rounded-lg text-lg font-medium text-left"
+              style={{ color: INK }}
+            >
+              <Icon size={22} style={{ color: CLAY }} />
+              {label}
+            </button>
+          ))}
         </div>
       )}
 
