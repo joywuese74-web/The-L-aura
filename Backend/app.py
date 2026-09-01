@@ -291,9 +291,9 @@ def require_admin(credentials: HTTPBasicCredentials = Depends(security)):
 def notify_complaint_reply(to_email: str, to_name: str, original_message: str, reply: str) -> bool:
     return send_email(
         to_email, to_name,
-        "L'Aura Support has responded to your message",
+        "Terra Studio Support has responded to your message",
         f"Hi {to_name},\n\nYou reported the following:\n\"{original_message}\"\n\n"
-        f"L'Aura Support's response:\n{reply}\n\n— L'Aura Support Team"
+        f"Terra Studio Support's response:\n{reply}\n\n— Terra Studio Support Team"
     )
 
 

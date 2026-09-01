@@ -760,10 +760,12 @@ export default function App() {
       {/* LEFT DRAWER MENU */}
       {isDrawerOpen && (
         <div className="fixed inset-0 z-[60] flex">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsDrawerOpen(false)} />
+          <div className="absolute inset-0" style={{ backgroundColor: `${INK}66` }} onClick={() => setIsDrawerOpen(false)} />
           <div className="relative w-72 h-full bg-white shadow-xl p-5 flex flex-col gap-1 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <span style={{ fontFamily: "serif", fontStyle: "italic", color: INK }} className="text-2xl font-bold">Menu</span>
+              <span style={{ fontFamily: "serif", fontStyle: "italic", color: INK }} className="text-2xl font-bold">
+                Terra <span style={{ fontFamily: "sans-serif", fontStyle: "normal", color: CLAY }} className="text-xs tracking-[0.2em] uppercase align-middle">Studio</span>
+              </span>
               <button onClick={() => setIsDrawerOpen(false)}><X size={22} /></button>
             </div>
             {[
@@ -802,7 +804,7 @@ export default function App() {
 function PanelShell({ title, onClose, children, wide }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0" style={{ backgroundColor: `${INK}80` }} onClick={onClose} />
       <div className={`relative bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-3xl" : "max-w-md"} max-h-[85vh] overflow-y-auto`}>
         <div className="sticky top-0 bg-white flex items-center justify-between p-4 border-b" style={{ borderColor: `${TAUPE}44` }}>
           <h2 className="text-base font-semibold" style={{ color: INK }}>{title}</h2>
@@ -1024,16 +1026,16 @@ function CautionPanel({ onClose }) {
   const customerPoints = [
     ["🔍 Check the Provider's Profile", "Review the provider's profile, services offered, qualifications, experience, ratings/reviews, and previous work before booking. Only book a provider whose credentials meet your expectations."],
     ["📋 Read the Service Details", "Carefully review the service description, price, duration, location, products/equipment involved, additional charges, and preparation or aftercare requirements. Ask the provider if anything is unclear."],
-    ["💬 Communicate Through L'Aura", "Keep booking-related communication within the platform to create a record of your appointment, useful if a dispute occurs."],
+    ["💬 Communicate Through Terra Studio", "Keep booking-related communication within the platform to create a record of your appointment, useful if a dispute occurs."],
     ["⚠️ Disclose Relevant Information", "Tell the provider about allergies, sensitivities, previous reactions, skin concerns, or medications that could affect the service."],
     ["🧴 Ask About Products and Procedures", "Ask about products, equipment, procedure, expected results, side effects, and aftercare. Don't proceed with a service you don't understand."],
-    ["💳 Use Approved Payment Methods", "Pay only through L'Aura's approved channels. Never share your password, PIN, OTP, or card security code with a provider."],
+    ["💳 Use Approved Payment Methods", "Pay only through Terra Studio's approved channels. Never share your password, PIN, OTP, or card security code with a provider."],
     ["📅 Confirm Your Booking", "Confirm provider name, service, date/time, location, total amount, and cancellation conditions. Keep your confirmation until service is completed."],
     ["🏠 Take Extra Care With Home Services", "Verify the provider's identity, share appointment details with someone you trust, and consider having another person present."],
     ["🧼 Check Hygiene & Professional Standards", "Pay attention to cleanliness of the environment, equipment, and products. Decline if conditions seem unsafe."],
     ["💰 Understand Cancellation & Refund Policies", "Read the cancellation, rescheduling, deposit, refund, and no-show policies before paying."],
     ["🚩 Watch for Red Flags", "Be cautious of pressure to buy extra services, unrealistic promises, unusual payment requests, or attempts to move off-platform."],
-    ["📢 Report Problems", "Report unsafe behaviour, fraud, harassment, payment disputes, or service-quality concerns to L'Aura support as soon as possible."],
+    ["📢 Report Problems", "Report unsafe behaviour, fraud, harassment, payment disputes, or service-quality concerns to Terra Studio support as soon as possible."],
   ];
 
   const providerPoints = [
@@ -1044,7 +1046,7 @@ function CautionPanel({ onClose }) {
     ["🩺 Know Your Service Limitations", "Identify situations where a service may be unsuitable, and don't proceed if a customer may be at risk."],
     ["💬 Communicate Professionally", "Treat every customer with respect — no harassment, discrimination, or abusive communication."],
     ["🔐 Protect Customer Privacy", "Keep customer information confidential; never share it or use it for unrelated purposes without consent."],
-    ["💳 Follow L'Aura's Payment Rules", "Use approved payment channels only. Don't pressure customers to bypass platform fees or share financial information."],
+    ["💳 Follow Terra Studio's Payment Rules", "Use approved payment channels only. Don't pressure customers to bypass platform fees or share financial information."],
     ["📅 Honour Confirmed Bookings", "Make reasonable efforts to honour bookings. Notify customers early if you can't attend."],
     ["🏠 Follow Safety Procedures for Home Services", "Confirm details before travelling, maintain professional boundaries, and leave if you feel unsafe."],
     ["📸 Obtain Consent Before Using Customer Images", "Never publish a customer's image or results for marketing without their consent."],
@@ -1090,15 +1092,15 @@ function DisclaimerPanel({ onClose }) {
   return (
     <PanelShell title="⚠️ Platform Disclaimer" onClose={onClose}>
       <p className="text-sm leading-relaxed" style={{ color: `${INK}CC` }}>
-        Service providers listed on L'Aura may operate independently. While L'Aura takes reasonable steps
+        Service providers listed on Terra Studio may operate independently. While Terra Studio takes reasonable steps
         to maintain the quality and integrity of its provider network, customers are encouraged to review
         each provider's profile, qualifications, reviews, service details, and applicable policies before booking.
         <br /><br />
-        L'Aura facilitates connections and bookings between customers and service providers but does not
+        Terra Studio facilitates connections and bookings between customers and service providers but does not
         necessarily provide the services itself. The platform's role, responsibilities, limitations, and
         dispute-resolution procedures are governed by our Terms &amp; Conditions.
         <br /><br />
-        Customers should make informed decisions and contact L'Aura Support if they have concerns regarding
+        Customers should make informed decisions and contact Terra Studio Support if they have concerns regarding
         a provider, booking, payment, or service.
       </p>
     </PanelShell>
@@ -1129,7 +1131,7 @@ function SupportPanel({ onClose }) {
     })
       .then((res) => res.json())
       .then(() => {
-        setComplaintStatus({ type: "success", text: "Your message has been sent to L'Aura Support." });
+        setComplaintStatus({ type: "success", text: "Your message has been sent to Terra Studio Support." });
         setComplaintForm({ name: "", email: "", role: "customer", message: "" });
       })
       .catch(() => setComplaintStatus({ type: "error", text: "Could not send your message. Please try again." }))
@@ -1222,7 +1224,7 @@ function SupportPanel({ onClose }) {
             className="w-full py-2 text-xs text-white rounded-lg disabled:opacity-40"
             style={{ backgroundColor: CLAY }}
           >
-            {sending ? "Sending…" : "Send to L'Aura Support"}
+            {sending ? "Sending…" : "Send to Terra Studio Support"}
           </button>
         </div>
       </div>
