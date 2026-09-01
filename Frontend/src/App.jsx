@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
   Sparkles, Droplets, Scissors, Wand2, Leaf, Gem,
   ShoppingBag, Calendar, Menu, X, ChevronDown, ChevronRight,
-  Plus, Minus, Check, Clock, MapPin, Instagram, ArrowRight, Upload
+  Plus, Minus, Check, Clock, MapPin, Instagram, ArrowRight, Upload,
+  Star, ShieldAlert, AlertTriangle, Headphones, Image as ImageIcon,
+  Lock, Send, LogOut
 } from "lucide-react";
 
 /* DESIGN TOKENS */
@@ -109,6 +111,8 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState(null); // 'admin' | 'rating' | 'caution' | 'disclaimer' | 'support' | 'gallery'
 
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedTreatment, setSelectedTreatment] = useState(null);
@@ -337,19 +341,29 @@ export default function App() {
         style={{ background: scrolled ? SAND : "transparent", borderBottom: scrolled ? `1px solid ${TAUPE}44` : "1px solid transparent" }}
       >
         <div className="w-full px-6 md:px-10 h-24 flex items-center justify-between">
-          <div className="flex flex-col gap-0.5">
-            
-            <a
-                href="#top"
-              className="flex items-baseline gap-2 px-4 py-2 rounded-full w-fit"
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              aria-label="Open menu"
+              className="p-2 rounded-full"
               style={{ backgroundColor: scrolled ? "transparent" : "rgba(0,0,0,0.35)" }}
             >
-              <span style={{ fontFamily: "serif", fontStyle: "italic", color: scrolled ? INK : "white" }} className="text-4xl font-bold">Terra</span>
-              <span style={{ color: CLAY }} className="text-xs tracking-[0.25em] uppercase font-bold">Studio</span>
-            </a>
-            <p className="pl-4 text-[10px] tracking-[0.15em] uppercase" style={{ color: scrolled ? TAUPE : "rgba(255,255,255,0.75)" }}>
-              Online Wellness Salon
-            </p>
+              <Menu size={24} color={scrolled ? INK : "white"} />
+            </button>
+
+            <div className="flex flex-col gap-0.5">
+              <a
+                  href="#top"
+                className="flex items-baseline gap-2 px-4 py-2 rounded-full w-fit"
+                style={{ backgroundColor: scrolled ? "transparent" : "rgba(0,0,0,0.35)" }}
+              >
+                <span style={{ fontFamily: "serif", fontStyle: "italic", color: scrolled ? INK : "white" }} className="text-4xl font-bold">Terra</span>
+                <span style={{ color: CLAY }} className="text-xs tracking-[0.25em] uppercase font-bold">Studio</span>
+              </a>
+              <p className="pl-4 text-[10px] tracking-[0.15em] uppercase" style={{ color: scrolled ? TAUPE : "rgba(255,255,255,0.75)" }}>
+                Online Wellness Salon
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -485,7 +499,14 @@ export default function App() {
                               {st.full_name === "No preference" ? "—" : st.full_name.charAt(0)}
                             </div>
                           )}
-                          <span className="flex-1">{st.full_name}</span>
+                          <span className="flex-1 flex items-center gap-1.5">
+                            {st.full_name}
+                            {st.avg_rating != null && (
+                              <span className="flex items-center gap-0.5 text-[10px]" style={{ color: TAUPE }}>
+                                <Star size={10} fill={CLAY} color={CLAY} /> {st.avg_rating} ({st.rating_count})
+                              </span>
+                            )}
+                          </span>
                           {st.distance != null && (
                             <span className="text-[10px] font-mono" style={{ color: TAUPE }}>
                               {st.distance < 1 ? "<1 km" : `${st.distance.toFixed(1)} km`}
@@ -735,6 +756,510 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* LEFT DRAWER MENU */}
+      {isDrawerOpen && (
+        <div className="fixed inset-0 z-[60] flex">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setIsDrawerOpen(false)} />
+          <div className="relative w-72 h-full bg-white shadow-xl p-5 flex flex-col gap-1 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <span style={{ fontFamily: "serif", fontStyle: "italic", color: INK }} className="text-2xl font-bold">Menu</span>
+              <button onClick={() => setIsDrawerOpen(false)}><X size={22} /></button>
+            </div>
+            {[
+              { key: "admin", label: "Admin", icon: Lock },
+              { key: "rating", label: "Rating", icon: Star },
+              { key: "caution", label: "Caution", icon: ShieldAlert },
+              { key: "disclaimer", label: "Platform Disclaimer", icon: AlertTriangle },
+              { key: "support", label: "Support", icon: Headphones },
+              { key: "gallery", label: "Gallery", icon: ImageIcon },
+            ].map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => { setActivePanel(key); setIsDrawerOpen(false); }}
+                className="flex items-center gap-3 p-3 rounded-lg text-sm text-left hover:bg-black/5"
+                style={{ color: INK }}
+              >
+                <Icon size={18} style={{ color: CLAY }} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activePanel === "admin" && <AdminPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === "rating" && <RatingPanel onClose={() => setActivePanel(null)} providers={providers} />}
+      {activePanel === "caution" && <CautionPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === "disclaimer" && <DisclaimerPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === "support" && <SupportPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === "gallery" && <GalleryPanel onClose={() => setActivePanel(null)} />}
     </div>
+  );
+}
+
+/* ============ SIDE PANEL SHELL ============ */
+function PanelShell({ title, onClose, children, wide }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className={`relative bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-3xl" : "max-w-md"} max-h-[85vh] overflow-y-auto`}>
+        <div className="sticky top-0 bg-white flex items-center justify-between p-4 border-b" style={{ borderColor: `${TAUPE}44` }}>
+          <h2 className="text-base font-semibold" style={{ color: INK }}>{title}</h2>
+          <button onClick={onClose}><X size={20} /></button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 1. ADMIN PANEL ============ */
+function AdminPanel({ onClose }) {
+  const [creds, setCreds] = useState({ username: "", password: "" });
+  const [authed, setAuthed] = useState(null); // null = not tried, {username,password} once verified
+  const [complaints, setComplaints] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [replyDrafts, setReplyDrafts] = useState({});
+
+  const authHeader = (c) => "Basic " + btoa(`${c.username}:${c.password}`);
+
+  const login = () => {
+    setError("");
+    setLoading(true);
+    fetch(`${API_BASE}/api/admin/complaints`, {
+      headers: { Authorization: authHeader(creds) }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Invalid username or password");
+        return res.json();
+      })
+      .then((data) => {
+        setAuthed(creds);
+        setComplaints(data);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  };
+
+  const sendReply = (complaintId) => {
+    const reply = replyDrafts[complaintId];
+    if (!reply) return;
+    fetch(`${API_BASE}/api/admin/complaints/${complaintId}/reply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: authHeader(authed) },
+      body: JSON.stringify({ reply }),
+    })
+      .then((res) => res.json())
+      .then((updated) => {
+        setComplaints((prev) => prev.map((c) => (c.complaint_id === updated.complaint_id ? updated : c)));
+        setReplyDrafts((prev) => ({ ...prev, [complaintId]: "" }));
+      });
+  };
+
+  if (!authed) {
+    return (
+      <PanelShell title="Admin Login" onClose={onClose}>
+        <div className="space-y-3">
+          <input
+            type="text" placeholder="Username" value={creds.username}
+            onChange={(e) => setCreds({ ...creds, username: e.target.value })}
+            className="w-full p-2 text-sm border rounded-lg bg-white"
+          />
+          <input
+            type="password" placeholder="Password" value={creds.password}
+            onChange={(e) => setCreds({ ...creds, password: e.target.value })}
+            className="w-full p-2 text-sm border rounded-lg bg-white"
+          />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <button
+            onClick={login}
+            disabled={loading || !creds.username || !creds.password}
+            className="w-full py-2.5 text-sm text-white rounded-lg disabled:opacity-40"
+            style={{ backgroundColor: CLAY }}
+          >
+            {loading ? "Checking…" : "Log in"}
+          </button>
+        </div>
+      </PanelShell>
+    );
+  }
+
+  return (
+    <PanelShell title="Admin — Complaints & Messages" onClose={onClose} wide>
+      <div className="flex justify-end mb-3">
+        <button onClick={() => setAuthed(null)} className="flex items-center gap-1 text-xs" style={{ color: TAUPE }}>
+          <LogOut size={14} /> Log out
+        </button>
+      </div>
+      {complaints.length === 0 && <p className="text-sm" style={{ color: TAUPE }}>No complaints yet.</p>}
+      <div className="space-y-4">
+        {complaints.map((c) => (
+          <div key={c.complaint_id} className="border rounded-xl p-4" style={{ borderColor: `${TAUPE}44` }}>
+            <div className="flex justify-between items-start mb-1">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: INK }}>{c.name} <span className="text-xs font-normal" style={{ color: TAUPE }}>({c.role})</span></p>
+                <p className="text-xs" style={{ color: TAUPE }}>{c.email} · {c.created_at}</p>
+              </div>
+              <span
+                className="text-[10px] px-2 py-1 rounded-full font-medium"
+                style={{ backgroundColor: c.status === "Resolved" ? `${MOSS}22` : `${CLAY}22`, color: c.status === "Resolved" ? MOSS : CLAY }}
+              >
+                {c.status}
+              </span>
+            </div>
+            <p className="text-sm mt-2" style={{ color: INK }}>{c.message}</p>
+            {c.admin_reply ? (
+              <div className="mt-3 p-3 rounded-lg text-sm" style={{ backgroundColor: SAND }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: MOSS }}>Admin reply:</p>
+                {c.admin_reply}
+              </div>
+            ) : (
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text" placeholder="Type a reply…"
+                  value={replyDrafts[c.complaint_id] || ""}
+                  onChange={(e) => setReplyDrafts({ ...replyDrafts, [c.complaint_id]: e.target.value })}
+                  className="flex-1 p-2 text-xs border rounded-lg bg-white"
+                />
+                <button
+                  onClick={() => sendReply(c.complaint_id)}
+                  className="px-3 py-2 rounded-lg text-white text-xs flex items-center gap-1"
+                  style={{ backgroundColor: CLAY }}
+                >
+                  <Send size={13} /> Send
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </PanelShell>
+  );
+}
+
+/* ============ 2. RATING PANEL ============ */
+function RatingPanel({ onClose, providers }) {
+  const [form, setForm] = useState({ booking_id: "", provider_name: "", customer_email: "", stars: 0, comment: "" });
+  const [status, setStatus] = useState(null); // {type:'success'|'error', text}
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = () => {
+    setStatus(null);
+    setSubmitting(true);
+    fetch(`${API_BASE}/api/ratings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, booking_id: parseInt(form.booking_id, 10) }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.detail || "Could not submit rating");
+        setStatus({ type: "success", text: data.status });
+        setForm({ booking_id: "", provider_name: "", customer_email: "", stars: 0, comment: "" });
+      })
+      .catch((err) => setStatus({ type: "error", text: err.message }))
+      .finally(() => setSubmitting(false));
+  };
+
+  return (
+    <PanelShell title="Rate Your Service Provider" onClose={onClose}>
+      <p className="text-xs mb-4" style={{ color: TAUPE }}>
+        You can rate a provider once your scheduled appointment time has passed by at least 2 hours.
+      </p>
+      <div className="space-y-3">
+        <input
+          type="number" placeholder="Booking ID" value={form.booking_id}
+          onChange={(e) => setForm({ ...form, booking_id: e.target.value })}
+          className="w-full p-2 text-sm border rounded-lg bg-white"
+        />
+        <select
+          value={form.provider_name}
+          onChange={(e) => setForm({ ...form, provider_name: e.target.value })}
+          className="w-full p-2 text-sm border rounded-lg bg-white"
+        >
+          <option value="">Select the provider you booked</option>
+          {providers.map((p) => (
+            <option key={p.provider_id} value={p.full_name}>{p.full_name}</option>
+          ))}
+        </select>
+        <input
+          type="email" placeholder="Your email used at booking" value={form.customer_email}
+          onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
+          className="w-full p-2 text-sm border rounded-lg bg-white"
+        />
+        <div className="flex gap-1 justify-center py-1">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} onClick={() => setForm({ ...form, stars: n })}>
+              <Star size={28} fill={n <= form.stars ? CLAY : "none"} color={CLAY} />
+            </button>
+          ))}
+        </div>
+        <textarea
+          placeholder="Additional comment (optional)" value={form.comment}
+          onChange={(e) => setForm({ ...form, comment: e.target.value })}
+          className="w-full p-2 text-sm border rounded-lg bg-white h-20"
+        />
+        {status && (
+          <p className="text-xs" style={{ color: status.type === "success" ? MOSS : "#dc2626" }}>{status.text}</p>
+        )}
+        <button
+          onClick={submit}
+          disabled={submitting || !form.booking_id || !form.provider_name || !form.customer_email || !form.stars}
+          className="w-full py-2.5 text-sm text-white rounded-lg disabled:opacity-40"
+          style={{ backgroundColor: CLAY }}
+        >
+          {submitting ? "Submitting…" : "Submit Rating"}
+        </button>
+      </div>
+    </PanelShell>
+  );
+}
+
+/* ============ 3. CAUTION PANEL ============ */
+function CautionPanel({ onClose }) {
+  const [tab, setTab] = useState("customer");
+
+  const customerPoints = [
+    ["🔍 Check the Provider's Profile", "Review the provider's profile, services offered, qualifications, experience, ratings/reviews, and previous work before booking. Only book a provider whose credentials meet your expectations."],
+    ["📋 Read the Service Details", "Carefully review the service description, price, duration, location, products/equipment involved, additional charges, and preparation or aftercare requirements. Ask the provider if anything is unclear."],
+    ["💬 Communicate Through L'Aura", "Keep booking-related communication within the platform to create a record of your appointment, useful if a dispute occurs."],
+    ["⚠️ Disclose Relevant Information", "Tell the provider about allergies, sensitivities, previous reactions, skin concerns, or medications that could affect the service."],
+    ["🧴 Ask About Products and Procedures", "Ask about products, equipment, procedure, expected results, side effects, and aftercare. Don't proceed with a service you don't understand."],
+    ["💳 Use Approved Payment Methods", "Pay only through L'Aura's approved channels. Never share your password, PIN, OTP, or card security code with a provider."],
+    ["📅 Confirm Your Booking", "Confirm provider name, service, date/time, location, total amount, and cancellation conditions. Keep your confirmation until service is completed."],
+    ["🏠 Take Extra Care With Home Services", "Verify the provider's identity, share appointment details with someone you trust, and consider having another person present."],
+    ["🧼 Check Hygiene & Professional Standards", "Pay attention to cleanliness of the environment, equipment, and products. Decline if conditions seem unsafe."],
+    ["💰 Understand Cancellation & Refund Policies", "Read the cancellation, rescheduling, deposit, refund, and no-show policies before paying."],
+    ["🚩 Watch for Red Flags", "Be cautious of pressure to buy extra services, unrealistic promises, unusual payment requests, or attempts to move off-platform."],
+    ["📢 Report Problems", "Report unsafe behaviour, fraud, harassment, payment disputes, or service-quality concerns to L'Aura support as soon as possible."],
+  ];
+
+  const providerPoints = [
+    ["🪪 Maintain Accurate Profile Information", "Keep your business name, services, qualifications, experience, location, pricing, and availability accurate and up to date."],
+    ["📋 Clearly Describe Your Services", "State what's included, price, duration, location, products used, preparation and aftercare requirements clearly."],
+    ["🧴 Follow Professional & Hygiene Standards", "Use clean, properly maintained equipment and appropriate sanitation practices at all times."],
+    ["⚠️ Do Not Perform Services Outside Your Competence", "Only provide services you're appropriately trained, qualified, or licensed for."],
+    ["🩺 Know Your Service Limitations", "Identify situations where a service may be unsuitable, and don't proceed if a customer may be at risk."],
+    ["💬 Communicate Professionally", "Treat every customer with respect — no harassment, discrimination, or abusive communication."],
+    ["🔐 Protect Customer Privacy", "Keep customer information confidential; never share it or use it for unrelated purposes without consent."],
+    ["💳 Follow L'Aura's Payment Rules", "Use approved payment channels only. Don't pressure customers to bypass platform fees or share financial information."],
+    ["📅 Honour Confirmed Bookings", "Make reasonable efforts to honour bookings. Notify customers early if you can't attend."],
+    ["🏠 Follow Safety Procedures for Home Services", "Confirm details before travelling, maintain professional boundaries, and leave if you feel unsafe."],
+    ["📸 Obtain Consent Before Using Customer Images", "Never publish a customer's image or results for marketing without their consent."],
+    ["💰 Be Transparent About Additional Charges", "Explain and get agreement before adding any unexpected charges."],
+    ["🚩 Report Suspicious Customer Behaviour", "Report fraud, threats, or unsafe conditions rather than confronting customers directly."],
+    ["⭐ Maintain Professional Standards", "Repeated complaints about hygiene, misrepresentation, or unprofessional conduct may lead to suspension."],
+  ];
+
+  const points = tab === "customer" ? customerPoints : providerPoints;
+
+  return (
+    <PanelShell title="Caution — Safety Guidelines" onClose={onClose} wide>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setTab("customer")}
+          className="flex-1 py-2 text-xs rounded-lg font-medium"
+          style={{ backgroundColor: tab === "customer" ? CLAY : SAND, color: tab === "customer" ? "white" : INK }}
+        >
+          For Customers
+        </button>
+        <button
+          onClick={() => setTab("provider")}
+          className="flex-1 py-2 text-xs rounded-lg font-medium"
+          style={{ backgroundColor: tab === "provider" ? CLAY : SAND, color: tab === "provider" ? "white" : INK }}
+        >
+          For Service Providers
+        </button>
+      </div>
+      <div className="space-y-4">
+        {points.map(([title, body]) => (
+          <div key={title}>
+            <p className="text-sm font-semibold mb-1" style={{ color: INK }}>{title}</p>
+            <p className="text-xs" style={{ color: `${INK}99` }}>{body}</p>
+          </div>
+        ))}
+      </div>
+    </PanelShell>
+  );
+}
+
+/* ============ 4. PLATFORM DISCLAIMER PANEL ============ */
+function DisclaimerPanel({ onClose }) {
+  return (
+    <PanelShell title="⚠️ Platform Disclaimer" onClose={onClose}>
+      <p className="text-sm leading-relaxed" style={{ color: `${INK}CC` }}>
+        Service providers listed on L'Aura may operate independently. While L'Aura takes reasonable steps
+        to maintain the quality and integrity of its provider network, customers are encouraged to review
+        each provider's profile, qualifications, reviews, service details, and applicable policies before booking.
+        <br /><br />
+        L'Aura facilitates connections and bookings between customers and service providers but does not
+        necessarily provide the services itself. The platform's role, responsibilities, limitations, and
+        dispute-resolution procedures are governed by our Terms &amp; Conditions.
+        <br /><br />
+        Customers should make informed decisions and contact L'Aura Support if they have concerns regarding
+        a provider, booking, payment, or service.
+      </p>
+    </PanelShell>
+  );
+}
+
+/* ============ 5. SUPPORT PANEL ============ */
+const NIGERIAN_STATES = [
+  "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta",
+  "Ebonyi","Edo","Ekiti","Enugu","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi",
+  "Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba",
+  "Yobe","Zamfara",
+];
+
+function SupportPanel({ onClose }) {
+  const [selectedState, setSelectedState] = useState(NIGERIAN_STATES[0]);
+  const [complaintForm, setComplaintForm] = useState({ name: "", email: "", role: "customer", message: "" });
+  const [complaintStatus, setComplaintStatus] = useState(null);
+  const [sending, setSending] = useState(false);
+
+  const submitComplaint = () => {
+    setSending(true);
+    setComplaintStatus(null);
+    fetch(`${API_BASE}/api/complaints`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(complaintForm),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setComplaintStatus({ type: "success", text: "Your message has been sent to L'Aura Support." });
+        setComplaintForm({ name: "", email: "", role: "customer", message: "" });
+      })
+      .catch(() => setComplaintStatus({ type: "error", text: "Could not send your message. Please try again." }))
+      .finally(() => setSending(false));
+  };
+
+  const Avatar = ({ name }) => (
+    <div
+      className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0"
+      style={{ backgroundColor: SAND, color: TAUPE }}
+    >
+      {name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+    </div>
+  );
+
+  return (
+    <PanelShell title="Support" onClose={onClose} wide>
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div className="flex items-center gap-3 p-3 border rounded-xl" style={{ borderColor: `${TAUPE}33` }}>
+          <Avatar name="Customer Service" />
+          <div>
+            <p className="text-sm font-semibold" style={{ color: INK }}>Customer Service</p>
+            <p className="text-xs" style={{ color: TAUPE }}>support@laura-studio.com</p>
+            <p className="text-xs" style={{ color: TAUPE }}>+234 000 000 0000</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-xl" style={{ borderColor: `${TAUPE}33` }}>
+          <Avatar name="IT Support" />
+          <div>
+            <p className="text-sm font-semibold" style={{ color: INK }}>IT Support</p>
+            <p className="text-xs" style={{ color: TAUPE }}>tech@laura-studio.com</p>
+            <p className="text-xs" style={{ color: TAUPE }}>+234 000 000 0000</p>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-sm font-semibold mb-2" style={{ color: INK }}>Regional Managers</p>
+      <select
+        value={selectedState}
+        onChange={(e) => setSelectedState(e.target.value)}
+        className="w-full p-2 text-sm border rounded-lg bg-white mb-3"
+      >
+        {NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
+      <div className="flex items-center gap-3 p-3 border rounded-xl" style={{ borderColor: `${TAUPE}33` }}>
+        <Avatar name={`${selectedState} RM`} />
+        <div>
+          <p className="text-sm font-semibold" style={{ color: INK }}>{selectedState} Regional Manager</p>
+          <p className="text-xs" style={{ color: TAUPE }}>Contact not yet assigned — check back soon.</p>
+        </div>
+      </div>
+      <p className="text-[10px] mt-3" style={{ color: TAUPE }}>
+        Placeholder contacts — replace with real names, numbers, and photos once available.
+      </p>
+
+      <div className="mt-6 pt-5 border-t" style={{ borderColor: `${TAUPE}33` }}>
+        <p className="text-sm font-semibold mb-2" style={{ color: INK }}>Report a Complaint or Concern</p>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <select
+              value={complaintForm.role}
+              onChange={(e) => setComplaintForm({ ...complaintForm, role: e.target.value })}
+              className="p-2 text-xs border rounded-lg bg-white"
+            >
+              <option value="customer">I'm a customer</option>
+              <option value="provider">I'm a service provider</option>
+            </select>
+            <input
+              type="text" placeholder="Your name" value={complaintForm.name}
+              onChange={(e) => setComplaintForm({ ...complaintForm, name: e.target.value })}
+              className="flex-1 p-2 text-xs border rounded-lg bg-white"
+            />
+          </div>
+          <input
+            type="email" placeholder="Your email" value={complaintForm.email}
+            onChange={(e) => setComplaintForm({ ...complaintForm, email: e.target.value })}
+            className="w-full p-2 text-xs border rounded-lg bg-white"
+          />
+          <textarea
+            placeholder="Describe your issue…" value={complaintForm.message}
+            onChange={(e) => setComplaintForm({ ...complaintForm, message: e.target.value })}
+            className="w-full p-2 text-xs border rounded-lg bg-white h-20"
+          />
+          {complaintStatus && (
+            <p className="text-xs" style={{ color: complaintStatus.type === "success" ? MOSS : "#dc2626" }}>{complaintStatus.text}</p>
+          )}
+          <button
+            onClick={submitComplaint}
+            disabled={sending || !complaintForm.name || !complaintForm.email || !complaintForm.message}
+            className="w-full py-2 text-xs text-white rounded-lg disabled:opacity-40"
+            style={{ backgroundColor: CLAY }}
+          >
+            {sending ? "Sending…" : "Send to L'Aura Support"}
+          </button>
+        </div>
+      </div>
+    </PanelShell>
+  );
+}
+
+/* ============ 6. GALLERY PANEL ============ */
+const GALLERY_CATEGORIES = [
+  "Hair Making", "Barbing", "Manicure and Pedicure", "Massage",
+  "Spa", "Nails", "Makeup", "Makeover", "Bridal Dressing",
+];
+
+function GalleryPanel({ onClose }) {
+  return (
+    <PanelShell title="Gallery" onClose={onClose} wide>
+      <p className="text-xs mb-4" style={{ color: TAUPE }}>
+        Placeholder images below — upload your own photos for each category to replace these.
+      </p>
+      <div className="space-y-6">
+        {GALLERY_CATEGORIES.map((cat) => (
+          <div key={cat}>
+            <p className="text-sm font-semibold mb-2" style={{ color: INK }}>{cat}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: SAND }}
+                >
+                  <ImageIcon size={22} style={{ color: TAUPE }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </PanelShell>
   );
 }

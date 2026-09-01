@@ -1,10 +1,13 @@
 import os
 import sqlite3
+import secrets
 import requests
+from datetime import datetime, timedelta
 from typing import List, Optional
 from contextlib import contextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
 # --- 1. App Initialization & CORS ---
@@ -58,6 +61,29 @@ def init_db():
                 phone TEXT NOT NULL,
                 passport_photo TEXT,
                 status TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS complaints (
+                complaint_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                role TEXT NOT NULL,
+                message TEXT NOT NULL,
+                admin_reply TEXT,
+                status TEXT NOT NULL DEFAULT 'Open',
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS ratings (
+                rating_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id INTEGER NOT NULL UNIQUE,
+                provider_name TEXT NOT NULL,
+                customer_email TEXT NOT NULL,
+                stars INTEGER NOT NULL,
+                comment TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
 
@@ -123,6 +149,40 @@ class ProviderRecord(BaseModel):
     phone: str
     passport_photo: Optional[str] = None
     status: str
+    avg_rating: Optional[float] = None
+    rating_count: int = 0
+
+class ComplaintPayload(BaseModel):
+    name: str
+    email: str
+    role: str  # "customer" or "provider"
+    message: str
+
+class ComplaintRecord(BaseModel):
+    complaint_id: int
+    name: str
+    email: str
+    role: str
+    message: str
+    admin_reply: Optional[str] = None
+    status: str
+    created_at: str
+
+class ComplaintReplyPayload(BaseModel):
+    reply: str
+
+class RatingPayload(BaseModel):
+    booking_id: int
+    provider_name: str
+    customer_email: str
+    stars: int
+    comment: Optional[str] = None
+
+class RatingSummary(BaseModel):
+    provider_name: str
+    avg_rating: float
+    rating_count: int
+    comments: List[str] = []
 
 # --- 4. Email helper (uses Brevo's HTTP API — SMTP ports are blocked on Render's free tier) ---
 def send_email(to_email: str, to_name: str, subject: str, text: str) -> bool:
@@ -215,6 +275,28 @@ def verify_paystack_payment(reference: str, expected_amount_naira: int) -> tuple
     except Exception as e:
         print(f"PAYMENT VERIFY FAILED: {type(e).__name__}: {e}")
         return False, "Could not reach payment verification service"
+# --- 4c. Admin authentication (HTTP Basic, credentials set via env vars) ---
+security = HTTPBasic()
+
+def require_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_user = os.getenv("ADMIN_USERNAME", "")
+    correct_pass = os.getenv("ADMIN_PASSWORD", "")
+    valid_user = secrets.compare_digest(credentials.username, correct_user)
+    valid_pass = secrets.compare_digest(credentials.password, correct_pass)
+    if not (correct_user and correct_pass and valid_user and valid_pass):
+        raise HTTPException(status_code=401, detail="Invalid admin credentials", headers={"WWW-Authenticate": "Basic"})
+    return credentials.username
+
+
+def notify_complaint_reply(to_email: str, to_name: str, original_message: str, reply: str) -> bool:
+    return send_email(
+        to_email, to_name,
+        "L'Aura Support has responded to your message",
+        f"Hi {to_name},\n\nYou reported the following:\n\"{original_message}\"\n\n"
+        f"L'Aura Support's response:\n{reply}\n\n— L'Aura Support Team"
+    )
+
+
 # --- 5. API Endpoints ---
 @app.post("/api/bookings", response_model=BookingConfirmation, status_code=201)
 def reserve_appointment(payload: BookingPayload):
@@ -319,7 +401,113 @@ def list_providers():
             """SELECT provider_id, full_name, state, lga, city, address, latitude, longitude,
                       salon_skill, email, phone, passport_photo, status FROM providers"""
         ).fetchall()
+        providers = [dict(r) for r in rows]
+
+        for p in providers:
+            stats = conn.execute(
+                "SELECT AVG(stars) as avg_r, COUNT(*) as cnt FROM ratings WHERE provider_name = ?",
+                (p["full_name"],)
+            ).fetchone()
+            p["avg_rating"] = round(stats["avg_r"], 1) if stats["avg_r"] else None
+            p["rating_count"] = stats["cnt"] or 0
+
+        return providers
+
+
+# --- Complaints / Admin ---
+@app.post("/api/complaints", response_model=ComplaintRecord, status_code=201)
+def submit_complaint(payload: ComplaintPayload):
+    with get_conn() as conn:
+        cur = conn.execute(
+            "INSERT INTO complaints (name, email, role, message, status) VALUES (?, ?, ?, ?, 'Open')",
+            (payload.name, payload.email, payload.role, payload.message)
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM complaints WHERE complaint_id = ?", (cur.lastrowid,)).fetchone()
+        return dict(row)
+
+@app.get("/api/admin/complaints", response_model=List[ComplaintRecord])
+def list_complaints(admin: str = Depends(require_admin)):
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM complaints ORDER BY created_at DESC").fetchall()
         return [dict(r) for r in rows]
+
+@app.post("/api/admin/complaints/{complaint_id}/reply", response_model=ComplaintRecord)
+def reply_to_complaint(complaint_id: int, payload: ComplaintReplyPayload, admin: str = Depends(require_admin)):
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM complaints WHERE complaint_id = ?", (complaint_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+        conn.execute(
+            "UPDATE complaints SET admin_reply = ?, status = 'Resolved' WHERE complaint_id = ?",
+            (payload.reply, complaint_id)
+        )
+        conn.commit()
+        updated = conn.execute("SELECT * FROM complaints WHERE complaint_id = ?", (complaint_id,)).fetchone()
+
+    notify_complaint_reply(row["email"], row["name"], row["message"], payload.reply)
+    return dict(updated)
+
+
+# --- Ratings ---
+@app.post("/api/ratings", status_code=201)
+def submit_rating(payload: RatingPayload):
+    if not (1 <= payload.stars <= 5):
+        raise HTTPException(status_code=400, detail="Stars must be between 1 and 5")
+
+    with get_conn() as conn:
+        booking = conn.execute(
+            "SELECT * FROM bookings WHERE booking_id = ?", (payload.booking_id,)
+        ).fetchone()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        if booking["client_email"].lower() != payload.customer_email.lower():
+            raise HTTPException(status_code=403, detail="This booking does not belong to that email address")
+        if booking["stylist"] != payload.provider_name:
+            raise HTTPException(status_code=400, detail="Provider name does not match this booking")
+
+        try:
+            appointment_dt = datetime.strptime(f"{booking['date']} {booking['time_slot']}", "%Y-%m-%d %I:%M %p")
+        except ValueError:
+            raise HTTPException(status_code=500, detail="Could not parse appointment time for eligibility check")
+
+        if datetime.now() < appointment_dt + timedelta(hours=2):
+            raise HTTPException(
+                status_code=403,
+                detail="You can rate this provider once your scheduled appointment time has passed by at least 2 hours."
+            )
+
+        existing = conn.execute(
+            "SELECT 1 FROM ratings WHERE booking_id = ?", (payload.booking_id,)
+        ).fetchone()
+        if existing:
+            raise HTTPException(status_code=400, detail="You have already rated this booking")
+
+        conn.execute(
+            "INSERT INTO ratings (booking_id, provider_name, customer_email, stars, comment) VALUES (?, ?, ?, ?, ?)",
+            (payload.booking_id, payload.provider_name, payload.customer_email, payload.stars, payload.comment)
+        )
+        conn.commit()
+
+    return {"status": "Rating submitted, thank you!"}
+
+@app.get("/api/ratings/{provider_name}", response_model=RatingSummary)
+def get_provider_ratings(provider_name: str):
+    with get_conn() as conn:
+        stats = conn.execute(
+            "SELECT AVG(stars) as avg_r, COUNT(*) as cnt FROM ratings WHERE provider_name = ?",
+            (provider_name,)
+        ).fetchone()
+        comments = conn.execute(
+            "SELECT comment FROM ratings WHERE provider_name = ? AND comment IS NOT NULL AND comment != '' ORDER BY created_at DESC LIMIT 10",
+            (provider_name,)
+        ).fetchall()
+        return {
+            "provider_name": provider_name,
+            "avg_rating": round(stats["avg_r"], 1) if stats["avg_r"] else 0,
+            "rating_count": stats["cnt"] or 0,
+            "comments": [c["comment"] for c in comments]
+        }
     
 # --- 6. Launch the server when running `python app.py` directly ---
 if __name__ == "__main__":
