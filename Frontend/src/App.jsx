@@ -1440,29 +1440,46 @@ function SupportPanel({ onClose }) {
 
 /* ============ 6. GALLERY PANEL ============ */
 const GALLERY_CATEGORIES = [
-  "Hair Making", "Barbing", "Manicure and Pedicure", "Massage",
-  "Spa", "Nails", "Makeup", "Makeover", "Bridal Dressing",
+  { name: "Hair Making", slug: "hair-making" },
+  { name: "Barbing", slug: "barbing" },
+  { name: "Manicure and Pedicure", slug: "manicure-and-pedicure" },
+  { name: "Massage", slug: "massage" },
+  { name: "Spa", slug: "spa" },
+  { name: "Nails", slug: "nails" },
+  { name: "Makeup", slug: "makeup" },
+  { name: "Makeover", slug: "makeover" },
+  { name: "Bridal Dressing", slug: "bridal-dressing" },
 ];
+
+function GalleryImage({ src }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div className="aspect-square rounded-lg flex items-center justify-center" style={{ backgroundColor: SAND }}>
+        <ImageIcon size={22} style={{ color: TAUPE }} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      onError={() => setFailed(true)}
+      className="aspect-square rounded-lg object-cover w-full h-full"
+      alt=""
+    />
+  );
+}
 
 function GalleryPanel({ onClose }) {
   return (
     <PanelShell title="Gallery" onClose={onClose} wide>
-      <p className="text-xs mb-4" style={{ color: TAUPE }}>
-        Placeholder images below — upload your own photos for each category to replace these.
-      </p>
       <div className="space-y-6">
         {GALLERY_CATEGORIES.map((cat) => (
-          <div key={cat}>
-            <p className="text-sm font-semibold mb-2" style={{ color: INK }}>{cat}</p>
+          <div key={cat.slug}>
+            <p className="text-sm font-semibold mb-2" style={{ color: INK }}>{cat.name}</p>
             <div className="grid grid-cols-3 gap-2">
               {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: SAND }}
-                >
-                  <ImageIcon size={22} style={{ color: TAUPE }} />
-                </div>
+                <GalleryImage key={i} src={`${import.meta.env.BASE_URL}gallery/${cat.slug}-${i}.jpg`} />
               ))}
             </div>
           </div>
