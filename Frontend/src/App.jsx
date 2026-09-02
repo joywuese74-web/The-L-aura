@@ -441,6 +441,22 @@ export default function App() {
         </div>
       </section>
 
+      {/* TRUST BAR */}
+      <section className="px-6 md:px-10 py-14" style={{ backgroundColor: INK }}>
+        <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8">
+          {[
+            { icon: MapPin, text: "Providers across all 36 states" },
+            { icon: ShieldCheck, text: "Verified & rated providers" },
+            { icon: CreditCard, text: "Secure payments via Paystack" },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-3 justify-center sm:justify-start">
+              <Icon size={22} color={CLAY} />
+              <p className="text-sm text-white/90">{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* SERVICES SHOWCASE */}
       <section className="px-6 md:px-10 py-20" style={{ backgroundColor: LINEN }}>
         <div className="max-w-6xl mx-auto">
@@ -543,22 +559,6 @@ export default function App() {
           </div>
         </section>
       )}
-
-      {/* TRUST BAR */}
-      <section className="px-6 md:px-10 py-14" style={{ backgroundColor: INK }}>
-        <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8">
-          {[
-            { icon: MapPin, text: "Providers across all 36 states" },
-            { icon: ShieldCheck, text: "Verified & rated providers" },
-            { icon: CreditCard, text: "Secure payments via Paystack" },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-3 justify-center sm:justify-start">
-              <Icon size={22} color={CLAY} />
-              <p className="text-sm text-white/90">{text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* FOOTER */}
       <footer className="px-6 md:px-10 py-14" style={{ backgroundColor: "#1D1915" }}>
