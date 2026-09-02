@@ -4,7 +4,7 @@ import {
   ShoppingBag, Calendar, Menu, X, ChevronDown, ChevronRight,
   Plus, Minus, Check, Clock, MapPin, Instagram, ArrowRight, Upload,
   Star, ShieldAlert, AlertTriangle, Headphones, Image as ImageIcon,
-  Lock, Send, LogOut
+  Lock, Send, LogOut, ShieldCheck, CreditCard, Users, Facebook, Twitter
 } from "lucide-react";
 
 /* DESIGN TOKENS */
@@ -440,6 +440,171 @@ export default function App() {
           </button>
         </div>
       </section>
+
+      {/* SERVICES SHOWCASE */}
+      <section className="px-6 md:px-10 py-20" style={{ backgroundColor: LINEN }}>
+        <div className="max-w-6xl mx-auto">
+          <p className="text-xs tracking-[0.25em] uppercase text-center mb-2" style={{ color: CLAY }}>What we offer</p>
+          <h2 className="text-3xl md:text-4xl font-serif italic text-center mb-12" style={{ color: INK }}>
+            Services for every ritual
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              const startingPrice = Math.min(...cat.treatments.map((t) => t.price));
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => { setSelectedTreatment(null); setSelectedCategoryName(cat.name); setBookingStep(1); setIsBookingOpen(true); }}
+                  className="text-left p-6 rounded-2xl border transition-shadow hover:shadow-lg bg-white"
+                  style={{ borderColor: `${TAUPE}33` }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
+                    style={{ backgroundColor: `${cat.color}1A` }}
+                  >
+                    <Icon size={22} style={{ color: cat.color }} />
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: cat.color }}>{cat.tag}</p>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: INK }}>{cat.name}</h3>
+                  <p className="text-xs mb-3" style={{ color: `${INK}99` }}>{cat.blurb}</p>
+                  <p className="text-xs font-mono" style={{ color: TAUPE }}>From {naira(startingPrice)}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="px-6 md:px-10 py-20" style={{ backgroundColor: SAND }}>
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs tracking-[0.25em] uppercase text-center mb-2" style={{ color: CLAY }}>Simple by design</p>
+          <h2 className="text-3xl md:text-4xl font-serif italic text-center mb-14" style={{ color: INK }}>
+            How it works
+          </h2>
+          <div className="grid sm:grid-cols-3 gap-10">
+            {[
+              { icon: Calendar, title: "Browse & Choose", body: "Explore treatments and pick a provider — sorted by skill and distance to you." },
+              { icon: CreditCard, title: "Book & Pay Securely", body: "Confirm your slot and pay online through our secure payment gateway." },
+              { icon: Sparkles, title: "Enjoy Your Service", body: "Your provider is notified instantly. Show up and relax — we handle the rest." },
+            ].map(({ icon: Icon, title, body }, i) => (
+              <div key={title} className="text-center">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: CLAY }}
+                >
+                  <Icon size={26} color="white" />
+                </div>
+                <p className="text-xs font-mono mb-1" style={{ color: TAUPE }}>Step {i + 1}</p>
+                <h3 className="text-base font-semibold mb-2" style={{ color: INK }}>{title}</h3>
+                <p className="text-xs" style={{ color: `${INK}99` }}>{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TOP RATED PROVIDERS */}
+      {providers.filter((p) => p.avg_rating).length > 0 && (
+        <section className="px-6 md:px-10 py-20" style={{ backgroundColor: LINEN }}>
+          <div className="max-w-6xl mx-auto">
+            <p className="text-xs tracking-[0.25em] uppercase text-center mb-2" style={{ color: CLAY }}>Loved by customers</p>
+            <h2 className="text-3xl md:text-4xl font-serif italic text-center mb-12" style={{ color: INK }}>
+              Top rated providers
+            </h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {providers
+                .filter((p) => p.avg_rating)
+                .sort((a, b) => b.avg_rating - a.avg_rating)
+                .slice(0, 3)
+                .map((p) => (
+                  <div key={p.provider_id} className="p-5 rounded-2xl border bg-white text-center" style={{ borderColor: `${TAUPE}33` }}>
+                    {p.passport_photo ? (
+                      <img src={p.passport_photo} alt={p.full_name} className="w-16 h-16 rounded-full object-cover mx-auto mb-3" />
+                    ) : (
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-lg font-semibold"
+                        style={{ backgroundColor: SAND, color: TAUPE }}
+                      >
+                        {p.full_name.charAt(0)}
+                      </div>
+                    )}
+                    <h3 className="text-sm font-semibold mb-1" style={{ color: INK }}>{p.full_name}</h3>
+                    <p className="text-xs mb-2" style={{ color: TAUPE }}>{(p.salon_skill || []).join(", ")}</p>
+                    <div className="flex items-center justify-center gap-1 text-xs">
+                      <Star size={13} fill={CLAY} color={CLAY} />
+                      <span className="font-semibold" style={{ color: INK }}>{p.avg_rating}</span>
+                      <span style={{ color: TAUPE }}>({p.rating_count})</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* TRUST BAR */}
+      <section className="px-6 md:px-10 py-14" style={{ backgroundColor: INK }}>
+        <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8">
+          {[
+            { icon: MapPin, text: "Providers across all 36 states" },
+            { icon: ShieldCheck, text: "Verified & rated providers" },
+            { icon: CreditCard, text: "Secure payments via Paystack" },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-3 justify-center sm:justify-start">
+              <Icon size={22} color={CLAY} />
+              <p className="text-sm text-white/90">{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="px-6 md:px-10 py-14" style={{ backgroundColor: "#1D1915" }}>
+        <div className="max-w-6xl mx-auto grid sm:grid-cols-2 md:grid-cols-4 gap-10">
+          <div>
+            <span style={{ fontFamily: "serif", fontStyle: "italic", color: "white" }} className="text-2xl font-bold">
+              Terra <span style={{ fontFamily: "sans-serif", fontStyle: "normal", color: CLAY }} className="text-xs tracking-[0.2em] uppercase align-middle">Studio</span>
+            </span>
+            <p className="text-xs mt-3 text-white/60">Bringing beauty to your doorstep — book trusted wellness providers near you.</p>
+            <div className="flex gap-3 mt-4">
+              <Instagram size={18} color="white" className="opacity-70" />
+              <Facebook size={18} color="white" className="opacity-70" />
+              <Twitter size={18} color="white" className="opacity-70" />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3 text-white/50">Quick Links</p>
+            <div className="flex flex-col gap-2 text-sm text-white/80">
+              <button onClick={() => setActivePanel("support")} className="text-left hover:text-white">Support</button>
+              <button onClick={() => setActivePanel("caution")} className="text-left hover:text-white">Caution</button>
+              <button onClick={() => setActivePanel("disclaimer")} className="text-left hover:text-white">Platform Disclaimer</button>
+              <button onClick={() => setActivePanel("gallery")} className="text-left hover:text-white">Gallery</button>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3 text-white/50">For Providers</p>
+            <div className="flex flex-col gap-2 text-sm text-white/80">
+              <button onClick={openProviderForm} className="text-left hover:text-white">Register your shop</button>
+              <button onClick={() => setActivePanel("rating")} className="text-left hover:text-white">Ratings</button>
+              <button onClick={() => setActivePanel("admin")} className="text-left hover:text-white">Admin</button>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3 text-white/50">Contact</p>
+            <p className="text-xs text-white/70">support@laura-studio.com</p>
+            <p className="text-xs text-white/70 mt-1">+234 000 000 0000</p>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto border-t mt-10 pt-6 text-center" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+          <p className="text-[11px] text-white/40">© {new Date().getFullYear()} Terra Studio. All rights reserved.</p>
+        </div>
+      </footer>
 
       {/* CUSTOMER BOOKING WIZARD (triggered by "Book Now") */}
       {isBookingOpen && (
