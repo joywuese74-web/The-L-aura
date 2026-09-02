@@ -130,7 +130,7 @@ class ProviderPayload(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    salon_skill: str
+    salon_skill: List[str]
     email: str
     phone: str
     passport_photo: Optional[str] = None
@@ -144,7 +144,7 @@ class ProviderRecord(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    salon_skill: str
+    salon_skill: List[str]
     email: str
     phone: str
     passport_photo: Optional[str] = None
@@ -363,6 +363,7 @@ def view_all_bookings():
 
 @app.post("/api/providers", response_model=ProviderRecord, status_code=201)
 def register_provider(payload: ProviderPayload):
+    skills_csv = ",".join(payload.salon_skill)
     with get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO providers
@@ -370,7 +371,7 @@ def register_provider(payload: ProviderPayload):
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (payload.full_name, payload.state, payload.lga, payload.city,
              payload.address, payload.latitude, payload.longitude,
-             payload.salon_skill, payload.email, payload.phone,
+             skills_csv, payload.email, payload.phone,
              payload.passport_photo, "Active")
         )
         conn.commit()
@@ -404,6 +405,7 @@ def list_providers():
         providers = [dict(r) for r in rows]
 
         for p in providers:
+            p["salon_skill"] = [s.strip() for s in (p["salon_skill"] or "").split(",") if s.strip()]
             stats = conn.execute(
                 "SELECT AVG(stars) as avg_r, COUNT(*) as cnt FROM ratings WHERE provider_name = ?",
                 (p["full_name"],)

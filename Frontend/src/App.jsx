@@ -116,6 +116,7 @@ export default function App() {
 
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedTreatment, setSelectedTreatment] = useState(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState(null);
   const [selectedStylist, setSelectedStylist] = useState({ full_name: "No preference", passport_photo: null });
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -132,7 +133,7 @@ export default function App() {
   const [isProviderOpen, setIsProviderOpen] = useState(false);
   const [providerForm, setProviderForm] = useState({
     full_name: "", state: "", lga: "", city: "", address: "",
-    salon_skill: SALON_SKILLS[0], email: "", phone: "",
+    salon_skill: [], email: "", phone: "",
   });
   const [providerLocation, setProviderLocation] = useState(null);
   const [providerLocationStatus, setProviderLocationStatus] = useState("idle");
@@ -161,6 +162,7 @@ export default function App() {
       passport_photo: null,
       latitude: null,
       longitude: null,
+      salon_skill: [],
     }));
 
     const realProviders = providers.filter(
@@ -169,26 +171,33 @@ export default function App() {
 
     const combined = [...realProviders, ...fallbackStylists];
 
-    const withDistance = combined.map((p) => {
+    const withDistanceAndMatch = combined.map((p) => {
       const hasCoords =
         customerLocation && p.latitude != null && p.longitude != null;
+      const skillMatch = selectedCategoryName
+        ? (p.salon_skill || []).includes(selectedCategoryName)
+        : false;
       return {
         ...p,
         distance: hasCoords
           ? distanceKm(customerLocation.lat, customerLocation.lng, p.latitude, p.longitude)
           : null,
+        skillMatch,
       };
     });
 
-    withDistance.sort((a, b) => {
+    withDistanceAndMatch.sort((a, b) => {
+      // Providers whose skills match the chosen treatment's category come first
+      if (a.skillMatch !== b.skillMatch) return a.skillMatch ? -1 : 1;
+      // Within each group, closer providers come first
       if (a.distance == null && b.distance == null) return 0;
       if (a.distance == null) return 1;
       if (b.distance == null) return -1;
       return a.distance - b.distance;
     });
 
-    return [{ full_name: "No preference", passport_photo: null, distance: null }, ...withDistance];
-  }, [providers, customerLocation]);
+    return [{ full_name: "No preference", passport_photo: null, distance: null, skillMatch: false }, ...withDistanceAndMatch];
+  }, [providers, customerLocation, selectedCategoryName]);
 
   useEffect(() => {
     if (isBookingOpen && locationStatus === "idle") {
@@ -206,6 +215,7 @@ export default function App() {
       setBookingStep(2);
     } else {
       setSelectedTreatment(null);
+      setSelectedCategoryName(null);
       setBookingStep(1);
     }
     setSubmitError("");
@@ -318,7 +328,7 @@ export default function App() {
       })
       .then(() => {
         setProviderSuccess(true);
-        setProviderForm({ full_name: "", state: "", lga: "", city: "", address: "", salon_skill: SALON_SKILLS[0], email: "", phone: "" });
+        setProviderForm({ full_name: "", state: "", lga: "", city: "", address: "", salon_skill: [], email: "", phone: "" });
         setProviderLocation(null);
         setProviderLocationStatus("idle");
         setPassportPreview(null);
@@ -330,7 +340,8 @@ export default function App() {
 
   const providerFormValid =
     providerForm.full_name && providerForm.state && providerForm.lga &&
-    providerForm.city && providerForm.email && providerForm.phone;
+    providerForm.city && providerForm.email && providerForm.phone &&
+    providerForm.salon_skill.length > 0;
 
   return (
     <div
@@ -453,7 +464,7 @@ export default function App() {
                           {cat.treatments.map((t) => (
                             <button
                               key={t.id}
-                              onClick={() => { setSelectedTreatment(t); setBookingStep(2); }}
+                              onClick={() => { setSelectedTreatment(t); setSelectedCategoryName(cat.name); setBookingStep(2); }}
                               className="w-full p-2.5 rounded-lg border text-left text-xs flex justify-between items-center bg-white hover:border-stone-900"
                             >
                               <span>{t.name} · {t.time}</span>
@@ -508,6 +519,14 @@ export default function App() {
                           )}
                           <span className="flex-1 flex items-center gap-1.5">
                             {st.full_name}
+                            {st.skillMatch && (
+                              <span
+                                className="text-[9px] px-1.5 py-0.5 rounded-full font-medium"
+                                style={{ backgroundColor: `${MOSS}22`, color: MOSS }}
+                              >
+                                Specialist
+                              </span>
+                            )}
                             {st.avg_rating != null && (
                               <span className="flex items-center gap-0.5 text-[10px]" style={{ color: TAUPE }}>
                                 <Star size={10} fill={CLAY} color={CLAY} /> {st.avg_rating} ({st.rating_count})
@@ -706,16 +725,31 @@ export default function App() {
                   </p>
 
                   <div>
-                    <label className="text-xs font-medium block mb-1">Salon skill</label>
-                    <select
-                      value={providerForm.salon_skill}
-                      onChange={(e) => setProviderForm({ ...providerForm, salon_skill: e.target.value })}
-                      className="w-full p-2 border rounded-lg text-xs bg-white"
-                    >
-                      {SALON_SKILLS.map((skill) => (
-                        <option key={skill} value={skill}>{skill}</option>
-                      ))}
-                    </select>
+                    <label className="text-xs font-medium block mb-1">Salon skills (select all that apply)</label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {SALON_SKILLS.map((skill) => {
+                        const checked = providerForm.salon_skill.includes(skill);
+                        return (
+                          <label
+                            key={skill}
+                            className="flex items-center gap-1.5 p-2 border rounded-lg text-xs bg-white cursor-pointer"
+                            style={{ borderColor: checked ? INK : `${TAUPE}66`, borderWidth: checked ? 2 : 1 }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const next = checked
+                                  ? providerForm.salon_skill.filter((s) => s !== skill)
+                                  : [...providerForm.salon_skill, skill];
+                                setProviderForm({ ...providerForm, salon_skill: next });
+                              }}
+                            />
+                            {skill}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <input
