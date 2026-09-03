@@ -431,13 +431,23 @@ export default function App() {
           <p className="max-w-md mx-auto mt-5 text-sm text-white/85">
             Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
           </p>
-          <button
-            onClick={openProviderForm}
-            className="mt-8 inline-flex items-center gap-2 px-10 py-4 rounded-full text-white text-base font-medium shadow-lg"
-            style={{ backgroundColor: CLAY }}
-          >
-            Get shop  <ArrowRight size={20} />
-          </button>
+                    <div className="mt-8 flex flex-col items-center gap-3">
+            <button
+              onClick={openProviderForm}
+              className="inline-flex items-center gap-2 px-10 py-4 rounded-full text-white text-base font-medium shadow-lg"
+              style={{ backgroundColor: CLAY }}
+            >
+              Get shop  <ArrowRight size={20} />
+            </button>
+
+            <button
+              onClick={() => setActivePanel("gallery")}
+              className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white/95 transition-colors"
+            >
+              <ImageIcon size={14} />
+              View Gallery
+            </button>
+          </div>
         </div>
       </section>
 
