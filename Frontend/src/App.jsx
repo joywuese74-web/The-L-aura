@@ -432,7 +432,7 @@ export default function App() {
             Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
           </p>
 
-          <div className="mt-8 flex flex-col items-center gap-10 w-full">
+          <div className="mt-8 flex flex-col items-center gap-[7.5rem] w-full">
             <button
               onClick={openProviderForm}
               className="inline-flex items-center gap-2 px-10 py-4 rounded-full text-white text-base font-medium shadow-lg"
@@ -1025,7 +1025,15 @@ export default function App() {
       {activePanel === "caution" && <CautionPanel onClose={() => setActivePanel(null)} />}
       {activePanel === "disclaimer" && <DisclaimerPanel onClose={() => setActivePanel(null)} />}
       {activePanel === "support" && <SupportPanel onClose={() => setActivePanel(null)} />}
-      {activePanel === "gallery" && <GalleryPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === "gallery" && (
+        <GalleryPanel
+          onClose={() => setActivePanel(null)}
+          onBookNow={() => {
+            setActivePanel(null);
+            startBooking();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1475,7 +1483,7 @@ const GALLERY_CATEGORIES = [
   { name: "Bridal Dressing", slug: "bridal-dressing" },
 ];
 
-function GalleryImage({ src }) {
+function GalleryImage({ src, onOpen }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
@@ -1488,13 +1496,16 @@ function GalleryImage({ src }) {
     <img
       src={src}
       onError={() => setFailed(true)}
-      className="aspect-square rounded-lg object-cover w-full h-full"
+      onClick={() => onOpen(src)}
+      className="aspect-square rounded-lg object-cover w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
       alt=""
     />
   );
 }
 
-function GalleryPanel({ onClose }) {
+function GalleryPanel({ onClose, onBookNow }) {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   return (
     <PanelShell title="Gallery" onClose={onClose} wide>
       <div className="space-y-6">
@@ -1503,12 +1514,50 @@ function GalleryPanel({ onClose }) {
             <p className="text-sm font-semibold mb-2" style={{ color: INK }}>{cat.name}</p>
             <div className="grid grid-cols-3 gap-2">
               {[1, 2, 3].map((i) => (
-                <GalleryImage key={i} src={`${import.meta.env.BASE_URL}gallery/${cat.slug}-${i}.jpg`} />
+                <GalleryImage
+                  key={i}
+                  src={`${import.meta.env.BASE_URL}gallery/${cat.slug}-${i}.jpg`}
+                  onOpen={setLightboxSrc}
+                />
               ))}
             </div>
           </div>
         ))}
       </div>
+
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={() => setLightboxSrc(null)}
+            aria-label="Close image"
+            className="absolute top-5 right-5 text-white"
+          >
+            <X size={28} />
+          </button>
+
+          <div
+            className="flex flex-col items-center gap-5 max-w-3xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={lightboxSrc}
+              alt=""
+              className="max-h-[75vh] w-auto max-w-full rounded-xl object-contain shadow-2xl"
+            />
+            <button
+              onClick={onBookNow}
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-white text-sm font-medium shadow-lg"
+              style={{ backgroundColor: CLAY }}
+            >
+              Book Now <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
     </PanelShell>
   );
 }
