@@ -1562,7 +1562,7 @@ function GalleryPanel({ onClose, onBookNow }) {
 
       {lightboxIndex !== null && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4 animate-fadeIn"
           style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
           onClick={() => setLightboxIndex(null)}
         >
@@ -1591,7 +1591,8 @@ function GalleryPanel({ onClose, onBookNow }) {
           </button>
 
           <div
-            className="flex flex-col items-center gap-5 max-w-3xl w-full"
+            key={lightboxIndex}
+            className="flex flex-col items-center gap-5 max-w-3xl w-full animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             <LightboxImage src={allImages[lightboxIndex]} />
