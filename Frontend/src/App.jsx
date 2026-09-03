@@ -431,7 +431,8 @@ export default function App() {
           <p className="max-w-md mx-auto mt-5 text-sm text-white/85">
             Facials, spa rituals, hair, nails and aesthetic treatments — booked in a couple of taps.
           </p>
-                    <div className="mt-8 flex flex-col items-center gap-3">
+
+          <div className="mt-8 flex flex-col items-center gap-6 w-full">
             <button
               onClick={openProviderForm}
               className="inline-flex items-center gap-2 px-10 py-4 rounded-full text-white text-base font-medium shadow-lg"
@@ -440,13 +441,26 @@ export default function App() {
               Get shop  <ArrowRight size={20} />
             </button>
 
-            <button
+            <div
               onClick={() => setActivePanel("gallery")}
-              className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white/95 transition-colors"
+              className="w-full max-w-2xl overflow-hidden cursor-pointer"
+              style={{
+                WebkitMaskImage: "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+                maskImage: "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+              }}
             >
-              <ImageIcon size={14} />
-              View Gallery
-            </button>
+              <div className="flex gap-3 w-max gallery-marquee-track">
+                {[...GALLERY_CATEGORIES, ...GALLERY_CATEGORIES].map((cat, i) => (
+                  <img
+                    key={`${cat.slug}-${i}`}
+                    src={`${import.meta.env.BASE_URL}gallery/${cat.slug}-1.jpg`}
+                    className="h-16 w-24 rounded-lg object-cover flex-shrink-0 opacity-90"
+                    alt=""
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

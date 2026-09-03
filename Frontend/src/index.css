@@ -21,3 +21,11 @@
   from { transform: scale(0.96); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+@keyframes gallery-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.gallery-marquee-track {
+  animation: gallery-marquee 22s linear infinite;
+}
