@@ -15,6 +15,7 @@ A full-stack wellness salon booking platform connecting customers with beauty an
 - Providers are automatically sorted by distance from the customer's current location
 - Pay securely online via Paystack (card, bank transfer, USSD)
 - Receive instant booking confirmation
+- Browse a photo gallery of past work across categories like hair, nails, barbing, spa, makeup, and bridal dressing
 
 **For service providers**
 - Register a shop with photo, address, and skill category
@@ -46,6 +47,9 @@ The-L-aura/
 │   ├── requirements.txt
 │   └── runtime.txt         # pins Python version for Render
 ├── Frontend/
+│   ├── public/
+│   │   ├── gallery/        # gallery images, see "Gallery images" section below
+│   │   └── hero-background.jpg
 │   ├── src/
 │   │   ├── App.jsx         # main application UI and logic
 │   │   └── main.jsx
@@ -54,6 +58,26 @@ The-L-aura/
 └── .github/workflows/
     └── deploy.yml          # builds and deploys Frontend to GitHub Pages on push
 ```
+
+---
+
+## Gallery images
+
+The Gallery panel (`GalleryPanel` in `App.jsx`) displays 3 photos each for the following categories. Images live in `Frontend/public/gallery/` and must be named exactly as below (lowercase, hyphen-separated, `.jpg`) or they will silently fall back to a placeholder icon:
+
+| Category | Expected filenames |
+|---|---|
+| Hair Making | `hair-making-1.jpg`, `hair-making-2.jpg`, `hair-making-3.jpg` |
+| Barbing | `barbing-1.jpg`, `barbing-2.jpg`, `barbing-3.jpg` |
+| Manicure and Pedicure | `manicure-and-pedicure-1.jpg`, `manicure-and-pedicure-2.jpg`, `manicure-and-pedicure-3.jpg` |
+| Massage | `massage-1.jpg`, `massage-2.jpg`, `massage-3.jpg` |
+| Spa | `spa-1.jpg`, `spa-2.jpg`, `spa-3.jpg` |
+| Nails | `nails-1.jpg`, `nails-2.jpg`, `nails-3.jpg` |
+| Makeup | `makeup-1.jpg`, `makeup-2.jpg`, `makeup-3.jpg` |
+| Makeover | `makeover-1.jpg`, `makeover-2.jpg`, `makeover-3.jpg` |
+| Bridal Dressing | `bridal-dressing-1.jpg`, `bridal-dressing-2.jpg`, `bridal-dressing-3.jpg` |
+
+To add or replace an image, upload it to `Frontend/public/gallery/` with the matching filename and push to `main` — the GitHub Pages deploy workflow picks it up automatically.
 
 ---
 
