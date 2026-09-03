@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Sparkles, Droplets, Scissors, Wand2, Leaf, Gem,
-  ShoppingBag, Calendar, Menu, X, ChevronDown, ChevronRight,
+  ShoppingBag, Calendar, Menu, X, ChevronDown, ChevronRight, ChevronLeft,
   Plus, Minus, Check, Clock, MapPin, Instagram, ArrowRight, Upload,
   Star, ShieldAlert, AlertTriangle, Headphones, Image as ImageIcon,
   Lock, Send, LogOut, ShieldCheck, CreditCard, Users, Facebook, Twitter
@@ -411,7 +411,7 @@ export default function App() {
       {/* HERO SECTION */}
       <section
         id="top"
-        className="relative min-h-screen flex items-center justify-center pt-32 pb-24 px-6 text-center bg-cover"
+        className="relative min-h-screen flex items-end justify-center pt-32 pb-20 px-6 text-center bg-cover"
         style={{
           backgroundImage: `url('${import.meta.env.BASE_URL}hero-background.jpg')`,
           backgroundPosition: "center 20%",
@@ -1496,20 +1496,55 @@ function GalleryImage({ src, onOpen }) {
     <img
       src={src}
       onError={() => setFailed(true)}
-      onClick={() => onOpen(src)}
+      onClick={onOpen}
       className="aspect-square rounded-lg object-cover w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
       alt=""
     />
   );
 }
 
+function LightboxImage({ src }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div
+        className="max-h-[75vh] w-full max-w-3xl aspect-square rounded-xl flex items-center justify-center"
+        style={{ backgroundColor: SAND }}
+      >
+        <ImageIcon size={40} style={{ color: TAUPE }} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      onError={() => setFailed(true)}
+      alt=""
+      className="max-h-[75vh] w-auto max-w-full rounded-xl object-contain shadow-2xl"
+    />
+  );
+}
+
 function GalleryPanel({ onClose, onBookNow }) {
-  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const allImages = React.useMemo(
+    () =>
+      GALLERY_CATEGORIES.flatMap((cat) =>
+        [1, 2, 3].map((i) => `${import.meta.env.BASE_URL}gallery/${cat.slug}-${i}.jpg`)
+      ),
+    []
+  );
+
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+
+  const showPrev = () =>
+    setLightboxIndex((i) => (i - 1 + allImages.length) % allImages.length);
+  const showNext = () =>
+    setLightboxIndex((i) => (i + 1) % allImages.length);
 
   return (
     <PanelShell title="Gallery" onClose={onClose} wide>
       <div className="space-y-6">
-        {GALLERY_CATEGORIES.map((cat) => (
+        {GALLERY_CATEGORIES.map((cat, catIdx) => (
           <div key={cat.slug}>
             <p className="text-sm font-semibold mb-2" style={{ color: INK }}>{cat.name}</p>
             <div className="grid grid-cols-3 gap-2">
@@ -1517,7 +1552,7 @@ function GalleryPanel({ onClose, onBookNow }) {
                 <GalleryImage
                   key={i}
                   src={`${import.meta.env.BASE_URL}gallery/${cat.slug}-${i}.jpg`}
-                  onOpen={setLightboxSrc}
+                  onOpen={() => setLightboxIndex(catIdx * 3 + (i - 1))}
                 />
               ))}
             </div>
@@ -1525,29 +1560,41 @@ function GalleryPanel({ onClose, onBookNow }) {
         ))}
       </div>
 
-      {lightboxSrc && (
+      {lightboxIndex !== null && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center p-4"
           style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
-          onClick={() => setLightboxSrc(null)}
+          onClick={() => setLightboxIndex(null)}
         >
           <button
-            onClick={() => setLightboxSrc(null)}
+            onClick={() => setLightboxIndex(null)}
             aria-label="Close image"
             className="absolute top-5 right-5 text-white"
           >
             <X size={28} />
           </button>
 
+          <button
+            onClick={(e) => { e.stopPropagation(); showPrev(); }}
+            aria-label="Previous image"
+            className="absolute left-3 md:left-8 top-1/2 -translate-y-1/2 text-white p-2 rounded-full hover:bg-white/10"
+          >
+            <ChevronLeft size={32} />
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); showNext(); }}
+            aria-label="Next image"
+            className="absolute right-3 md:right-8 top-1/2 -translate-y-1/2 text-white p-2 rounded-full hover:bg-white/10"
+          >
+            <ChevronRight size={32} />
+          </button>
+
           <div
             className="flex flex-col items-center gap-5 max-w-3xl w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={lightboxSrc}
-              alt=""
-              className="max-h-[75vh] w-auto max-w-full rounded-xl object-contain shadow-2xl"
-            />
+            <LightboxImage src={allImages[lightboxIndex]} />
             <button
               onClick={onBookNow}
               className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-white text-sm font-medium shadow-lg"
